@@ -66,6 +66,12 @@
 			<scope>runtime</scope>
 		</dependency>
 
+		<!-- Health endpoint for the hosting platform -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
 		<!-- API docs (Swagger UI) -->
 		<dependency>
 			<groupId>org.springdoc</groupId>

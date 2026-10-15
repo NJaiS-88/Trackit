@@ -1,10 +1,17 @@
 import axios from 'axios'
 import { clearStoredSession, getStoredSession } from '../utils/session'
 
+const configuredApiUrl = import.meta.env.VITE_API_URL?.replace(/\/+$/, '')
+
+if (!configuredApiUrl && import.meta.env.PROD) {
+  console.error('VITE_API_URL is not set; API requests will fail. Set it in the hosting environment and rebuild.')
+}
+
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8081',
+  baseURL: configuredApiUrl || 'http://localhost:8081',
   headers: { 'Content-Type': 'application/json' },
-  timeout: 15000,
+  // Render's free tier sleeps when idle; the first request can take ~50s while it wakes up
+  timeout: 60000,
 })
 
 instance.interceptors.request.use((config) => {
