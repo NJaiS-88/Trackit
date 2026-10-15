@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: trackit
+  config:
+    # Loads MONGO_URI / JWT_SECRET / JWT_EXPIRATION from a local .env (run from the backend folder)
+    import: optional:file:.env[.properties]
+  data:
+    mongodb:
+      uri: ${MONGO_URI:mongodb+srv://placeholder}
+      database: ${MONGO_DATABASE:trackit}
+      auto-index-creation: true
+    web:
+      pageable:
+        max-page-size: 100
+
+server:
+  port: ${PORT:8081}
+
+security:
+  jwt:
+    # Base64-encoded key of at least 256 bits, e.g. `openssl rand -base64 32`. No default on purpose.
+    secret: ${JWT_SECRET}
+    # Token lifetime in milliseconds (default 24h)
+    expiration: ${JWT_EXPIRATION:86400000}
+  cors:
+    allowed-origins: http://localhost:5173
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
