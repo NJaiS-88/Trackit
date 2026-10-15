@@ -1,22 +1,37 @@
-import { Link } from 'react-router-dom'
-import { useAuth } from '../auth/useAuth'
+import { useAuth } from '../hooks/useAuth'
 import { ROLE_LABELS } from '../constants/roles'
 
-export default function Navbar() {
-  const { user, logout } = useAuth()
+export default function Navbar({ onToggleSidebar, sidebarOpen }) {
+  const { user, role } = useAuth()
+  const initials = user.name
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
 
   return (
-    <header className="topbar">
-      <Link to="/dashboard" className="brand">
-        Trackit
-      </Link>
-      <div className="topbar-user">
-        <span>
-          {user.name} <span className="role-badge">{ROLE_LABELS[user.role] ?? user.role}</span>
+    <header className="navbar">
+      <button
+        type="button"
+        className="hamburger"
+        onClick={onToggleSidebar}
+        aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
+        aria-expanded={sidebarOpen}
+      >
+        <span />
+        <span />
+        <span />
+      </button>
+
+      <div className="navbar-user">
+        <div className="navbar-user-text">
+          <span className="navbar-user-name">{user.name}</span>
+          <span className={`role-badge role-${role.toLowerCase()}`}>{ROLE_LABELS[role] ?? role}</span>
+        </div>
+        <span className="avatar" aria-hidden="true">
+          {initials}
         </span>
-        <button type="button" className="btn-secondary" onClick={logout}>
-          Sign out
-        </button>
       </div>
     </header>
   )

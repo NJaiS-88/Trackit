@@ -1,26 +1,54 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { GuestRoute, ProtectedRoute } from './auth/ProtectedRoute'
 import AppLayout from './components/AppLayout'
-import UsersPage from './pages/admin/UsersPage'
-import DashboardPage from './pages/DashboardPage'
-import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
+import AdminUsers from './pages/AdminUsers'
+import CreateIncident from './pages/CreateIncident'
+import Dashboard from './pages/Dashboard'
+import IncidentDetail from './pages/IncidentDetail'
+import Incidents from './pages/Incidents'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import GuestRoute from './routes/GuestRoute'
+import ProtectedRoute from './routes/ProtectedRoute'
 
 export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
       <Route element={<GuestRoute />}>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
       </Route>
-      <Route element={<ProtectedRoute />}>
-        <Route element={<AppLayout />}>
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route element={<ProtectedRoute roles={['ADMIN']} />}>
-            <Route path="/admin/users" element={<UsersPage />} />
-          </Route>
-        </Route>
+
+      {/* Every signed-in screen shares the sidebar + navbar shell */}
+      <Route
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/incidents" element={<Incidents />} />
+        <Route
+          path="/incidents/new"
+          element={
+            <ProtectedRoute allowedRoles={['EMPLOYEE']}>
+              <CreateIncident />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/incidents/:id" element={<IncidentDetail />} />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminUsers />
+            </ProtectedRoute>
+          }
+        />
       </Route>
+
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )

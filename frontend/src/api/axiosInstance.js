@@ -1,13 +1,13 @@
 import axios from 'axios'
-import { getStoredSession } from '../auth/session'
+import { clearStoredSession, getStoredSession } from '../utils/session'
 
-const apiClient = axios.create({
+const instance = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8081',
   headers: { 'Content-Type': 'application/json' },
   timeout: 15000,
 })
 
-apiClient.interceptors.request.use((config) => {
+instance.interceptors.request.use((config) => {
   const session = getStoredSession()
   if (session?.token) {
     config.headers.Authorization = `${session.tokenType ?? 'Bearer'} ${session.token}`
@@ -17,7 +17,10 @@ apiClient.interceptors.request.use((config) => {
 
 let unauthorizedHandler = null
 
-/** Registers a callback fired when an authenticated request comes back 401 (expired/revoked token). */
+/**
+ * Registers the callback run when an authenticated request returns 401 (expired/revoked token).
+ * AuthContext uses it to reset state so the router redirects to /login without a full reload.
+ */
 export function onUnauthorized(handler) {
   unauthorizedHandler = handler
   return () => {
@@ -25,20 +28,20 @@ export function onUnauthorized(handler) {
   }
 }
 
-apiClient.interceptors.response.use(
+instance.interceptors.response.use(
   (response) => response,
   (error) => {
     const isAuthEndpoint = error.config?.url?.startsWith('/api/auth/')
     if (error.response?.status === 401 && !isAuthEndpoint) {
-      unauthorizedHandler?.()
+      clearStoredSession()
+      if (unauthorizedHandler) unauthorizedHandler()
+      else window.location.assign('/login')
     }
     return Promise.reject(error)
   },
 )
 
-/**
- * Normalizes an axios error into `{ status, message, fieldErrors }` using the backend's ApiErrorResponse shape.
- */
+/** Normalizes an axios error into `{ status, message, fieldErrors }` using the backend's ApiErrorResponse. */
 export function parseApiError(error) {
   if (!error.response) {
     return {
@@ -55,4 +58,4 @@ export function parseApiError(error) {
   }
 }
 
-export default apiClient
+export default instance

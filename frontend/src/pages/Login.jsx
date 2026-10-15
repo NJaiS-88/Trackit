@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { parseApiError } from '../api/client'
-import { useAuth } from '../auth/useAuth'
-import { validateLogin } from '../auth/validation'
+import * as authApi from '../api/authApi'
+import { parseApiError } from '../api/axiosInstance'
 import AuthLayout from '../components/AuthLayout'
-import FormField from '../components/FormField'
+import FloatingField from '../components/FloatingField'
+import Spinner from '../components/Spinner'
+import { useAuth } from '../hooks/useAuth'
+import { validateLogin } from '../utils/validation'
 
-export default function LoginPage() {
+export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -32,9 +34,9 @@ export default function LoginPage() {
 
     setSubmitting(true)
     try {
-      await login({ email: form.email.trim(), password: form.password })
-      const redirectTo = location.state?.from?.pathname ?? '/dashboard'
-      navigate(redirectTo, { replace: true })
+      const response = await authApi.login({ email: form.email.trim(), password: form.password })
+      login(response)
+      navigate(location.state?.from?.pathname ?? '/dashboard', { replace: true })
     } catch (error) {
       const { message, fieldErrors } = parseApiError(error)
       setErrors(fieldErrors)
@@ -45,8 +47,8 @@ export default function LoginPage() {
 
   return (
     <AuthLayout
-      title="Sign in"
-      subtitle="Report and track IT incidents"
+      title="Welcome back"
+      subtitle="Sign in to report and track IT incidents"
       footer={
         <>
           New to Trackit? <Link to="/register">Create an account</Link>
@@ -55,13 +57,13 @@ export default function LoginPage() {
     >
       <form className="auth-form" onSubmit={handleSubmit} noValidate>
         {formError && (
-          <div className="alert" role="alert">
+          <div className="alert alert-error" role="alert">
             {formError}
           </div>
         )}
-        <FormField
+        <FloatingField
           id="email"
-          label="Email"
+          label="Email address"
           type="email"
           autoComplete="email"
           value={form.email}
@@ -69,7 +71,7 @@ export default function LoginPage() {
           error={errors.email}
           autoFocus
         />
-        <FormField
+        <FloatingField
           id="password"
           label="Password"
           type="password"
@@ -78,8 +80,9 @@ export default function LoginPage() {
           onChange={handleChange}
           error={errors.password}
         />
-        <button type="submit" className="btn-primary" disabled={submitting}>
-          {submitting ? 'Signing in…' : 'Sign in'}
+        <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
+          {submitting && <Spinner />}
+          {submitting ? 'Signing in…' : 'Sign In'}
         </button>
       </form>
     </AuthLayout>

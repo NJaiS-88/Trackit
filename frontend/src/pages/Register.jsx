@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { parseApiError } from '../api/client'
-import { useAuth } from '../auth/useAuth'
-import { parseExpertise, validateRegister } from '../auth/validation'
+import * as authApi from '../api/authApi'
+import { parseApiError } from '../api/axiosInstance'
 import AuthLayout from '../components/AuthLayout'
-import FormField from '../components/FormField'
+import FloatingField from '../components/FloatingField'
+import Spinner from '../components/Spinner'
+import { useAuth } from '../hooks/useAuth'
+import { parseExpertise, validateRegister } from '../utils/validation'
 
 const EMPTY_FORM = { name: '', email: '', password: '', confirmPassword: '', expertise: '' }
 
-export default function RegisterPage() {
-  const { register } = useAuth()
+export default function Register() {
+  const { login } = useAuth()
   const navigate = useNavigate()
 
   const [form, setForm] = useState(EMPTY_FORM)
@@ -33,12 +35,13 @@ export default function RegisterPage() {
 
     setSubmitting(true)
     try {
-      await register({
+      const response = await authApi.register({
         name: form.name.trim(),
         email: form.email.trim(),
         password: form.password,
         expertise: parseExpertise(form.expertise),
       })
+      login(response)
       navigate('/dashboard', { replace: true })
     } catch (error) {
       const { message, fieldErrors } = parseApiError(error)
@@ -60,11 +63,11 @@ export default function RegisterPage() {
     >
       <form className="auth-form" onSubmit={handleSubmit} noValidate>
         {formError && (
-          <div className="alert" role="alert">
+          <div className="alert alert-error" role="alert">
             {formError}
           </div>
         )}
-        <FormField
+        <FloatingField
           id="name"
           label="Full name"
           autoComplete="name"
@@ -73,16 +76,16 @@ export default function RegisterPage() {
           error={errors.name}
           autoFocus
         />
-        <FormField
+        <FloatingField
           id="email"
-          label="Email"
+          label="Email address"
           type="email"
           autoComplete="email"
           value={form.email}
           onChange={handleChange}
           error={errors.email}
         />
-        <FormField
+        <FloatingField
           id="password"
           label="Password"
           type="password"
@@ -91,7 +94,7 @@ export default function RegisterPage() {
           onChange={handleChange}
           error={errors.password}
         />
-        <FormField
+        <FloatingField
           id="confirmPassword"
           label="Confirm password"
           type="password"
@@ -100,17 +103,16 @@ export default function RegisterPage() {
           onChange={handleChange}
           error={errors.confirmPassword}
         />
-        <FormField
+        <FloatingField
           id="expertise"
-          label="Expertise (optional)"
-          placeholder="e.g. Networking, Hardware, Email"
+          label="Expertise (optional, comma-separated)"
           value={form.expertise}
           onChange={handleChange}
           error={errors.expertise}
         />
-        <p className="field-hint muted">Comma-separated. Used if you are made an engineer.</p>
-        <button type="submit" className="btn-primary" disabled={submitting}>
-          {submitting ? 'Creating account…' : 'Create account'}
+        <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
+          {submitting && <Spinner />}
+          {submitting ? 'Creating account…' : 'Create Account'}
         </button>
       </form>
     </AuthLayout>

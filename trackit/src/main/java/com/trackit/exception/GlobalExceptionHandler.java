@@ -3,6 +3,7 @@ package com.trackit.exception;
 import com.trackit.dto.ApiErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,10 +12,13 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -23,14 +27,37 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiErrorResponse> handleValidation(MethodArgumentNotValidException ex,
-                                                             HttpServletRequest request) {
+    /** Covers {@code MethodArgumentNotValidException} (request bodies) and query-string binding failures. */
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<ApiErrorResponse> handleValidation(BindException ex, HttpServletRequest request) {
         Map<String, String> fieldErrors = new LinkedHashMap<>();
         for (FieldError error : ex.getBindingResult().getFieldErrors()) {
-            fieldErrors.putIfAbsent(error.getField(), error.getDefaultMessage());
+            String message = error.isBindingFailure()
+                    ? "Invalid value '%s'".formatted(error.getRejectedValue())
+                    : error.getDefaultMessage();
+            fieldErrors.putIfAbsent(error.getField(), message);
         }
         return build(HttpStatus.BAD_REQUEST, "Validation failed", request, fieldErrors);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex,
+                                                               HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST,
+                "Invalid value '%s' for parameter '%s'".formatted(ex.getValue(), ex.getName()), request, null);
+    }
+
+    @ExceptionHandler(WorkflowViolationException.class)
+    public ResponseEntity<ApiErrorResponse> handleWorkflowViolation(WorkflowViolationException ex,
+                                                                    HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ApiErrorResponse> handleConcurrentModification(OptimisticLockingFailureException ex,
+                                                                         HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT,
+                "This record was modified by someone else. Reload and try again.", request, null);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -63,10 +90,11 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNAUTHORIZED, message, request, null);
     }
 
+    /** Authenticated but not allowed to touch this resource (e.g. someone else's incident). */
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ApiErrorResponse> handleUnauthorized(UnauthorizedException ex,
                                                                HttpServletRequest request) {
-        return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), request, null);
+        return build(HttpStatus.FORBIDDEN, ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -85,6 +113,19 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleEmailExists(EmailAlreadyExistsException ex,
                                                               HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleNoEndpoint(NoResourceFoundException ex,
+                                                             HttpServletRequest request) {
+        return build(HttpStatus.NOT_FOUND, "No endpoint %s %s".formatted(request.getMethod(), request.getRequestURI()),
+                request, null);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiErrorResponse> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex,
+                                                                   HttpServletRequest request) {
+        return build(HttpStatus.METHOD_NOT_ALLOWED, ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(Exception.class)

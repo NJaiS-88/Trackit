@@ -1,4 +1,4 @@
-// Mirrors the backend's RegisterRequest / LoginRequest constraints so users get instant feedback.
+// Mirrors the backend's request DTO constraints so users get instant feedback.
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -46,5 +46,26 @@ export function validateRegister({ name, email, password, confirmPassword, exper
   else if (expertiseItems.some((item) => item.length > 50)) {
     errors.expertise = 'Expertise entries must be at most 50 characters'
   }
+  return errors
+}
+
+export function validateIncident({ title, description, category, affectedService, impact, urgency }) {
+  const errors = {}
+  const trimmedTitle = title.trim()
+  if (!trimmedTitle) errors.title = 'Title is required'
+  else if (trimmedTitle.length > 120) errors.title = 'Title must be at most 120 characters'
+
+  const trimmedDescription = description.trim()
+  if (!trimmedDescription) errors.description = 'Description is required'
+  else if (trimmedDescription.length > 3000) {
+    errors.description = 'Description must be at most 3000 characters'
+  }
+
+  if (!category) errors.category = 'Category is required'
+  if (affectedService.trim().length > 120) {
+    errors.affectedService = 'Affected service must be at most 120 characters'
+  }
+  if (!impact) errors.impact = 'Impact is required'
+  if (!urgency) errors.urgency = 'Urgency is required'
   return errors
 }

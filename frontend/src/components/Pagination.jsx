@@ -1,30 +1,29 @@
 /** `page` is zero-based, matching the backend. */
 export default function Pagination({ page, totalPages, totalElements, onPageChange, disabled }) {
-  if (totalPages <= 1) {
-    return <p className="pagination-summary muted">{totalElements} total</p>
-  }
+  const pageCount = Math.max(totalPages, 1)
 
   return (
     <div className="pagination">
-      <span className="pagination-summary muted">
-        Page {page + 1} of {totalPages} · {totalElements} total
-      </span>
-      <div className="pagination-buttons">
+      <span className="text-muted">{totalElements} total</span>
+      <div className="pagination-controls">
         <button
           type="button"
-          className="btn-secondary"
+          className="btn btn-ghost"
           onClick={() => onPageChange(page - 1)}
-          disabled={disabled || page === 0}
+          disabled={disabled || page <= 0}
         >
-          Previous
+          ← Previous
         </button>
+        <span className="pagination-label">
+          Page {Math.min(page + 1, pageCount)} of {pageCount}
+        </span>
         <button
           type="button"
-          className="btn-secondary"
+          className="btn btn-ghost"
           onClick={() => onPageChange(page + 1)}
-          disabled={disabled || page >= totalPages - 1}
+          disabled={disabled || page >= pageCount - 1}
         >
-          Next
+          Next →
         </button>
       </div>
     </div>

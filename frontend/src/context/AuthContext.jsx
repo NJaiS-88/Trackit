@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import * as authApi from '../api/auth'
-import { onUnauthorized } from '../api/client'
-import { AuthContext } from './context'
-import { clearStoredSession, createSession, getStoredSession, storeSession } from './session'
+import { onUnauthorized } from '../api/axiosInstance'
+import { clearStoredSession, createSession, getStoredSession, storeSession } from '../utils/session'
+import { AuthContext } from './auth-context'
 
 const MAX_TIMEOUT_MS = 2_147_483_647
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(() => getStoredSession())
 
-  const startSession = useCallback((authResponse) => {
+  /** Stores the AuthResponse returned by authApi.login / authApi.register. */
+  const login = useCallback((authResponse) => {
     const next = createSession(authResponse)
     storeSession(next)
     setSession(next)
@@ -20,16 +20,6 @@ export function AuthProvider({ children }) {
     clearStoredSession()
     setSession(null)
   }, [])
-
-  const login = useCallback(
-    async (credentials) => startSession(await authApi.login(credentials)),
-    [startSession],
-  )
-
-  const register = useCallback(
-    async (details) => startSession(await authApi.register(details)),
-    [startSession],
-  )
 
   useEffect(() => onUnauthorized(logout), [logout])
 
@@ -47,13 +37,14 @@ export function AuthProvider({ children }) {
 
   const value = useMemo(
     () => ({
+      token: session?.token ?? null,
       user: session?.user ?? null,
+      role: session?.user?.role ?? null,
       isAuthenticated: Boolean(session),
       login,
-      register,
       logout,
     }),
-    [session, login, register, logout],
+    [session, login, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
