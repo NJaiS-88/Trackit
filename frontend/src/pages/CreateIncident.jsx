@@ -3,8 +3,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { parseApiError } from '../api/axiosInstance'
 import { createIncident } from '../api/incidentApi'
 import FormField from '../components/FormField'
+import PriorityBadge from '../components/PriorityBadge'
 import Spinner from '../components/Spinner'
-import { CATEGORIES, CATEGORY_LABELS, LEVEL_LABELS, LEVELS } from '../constants/incident'
+import { CATEGORIES, CATEGORY_LABELS, LEVEL_LABELS, LEVELS, PRIORITY_LABELS } from '../constants/incident'
+import { previewPriority } from '../utils/priorityCalculator'
 import { validateIncident } from '../utils/validation'
 
 const EMPTY_FORM = {
@@ -22,6 +24,7 @@ export default function CreateIncident() {
   const [errors, setErrors] = useState({})
   const [formError, setFormError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const expectedPriority = previewPriority(form.impact, form.urgency)
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -153,6 +156,15 @@ export default function CreateIncident() {
             </option>
           ))}
         </FormField>
+
+        <div className="span-2 priority-preview">
+          <p className="field-hint">Priority is automatically calculated from your Impact and Urgency selection.</p>
+          {expectedPriority && (
+            <p className="priority-preview-result">
+              Expected priority: <PriorityBadge priority={expectedPriority} label={PRIORITY_LABELS[expectedPriority]} />
+            </p>
+          )}
+        </div>
 
         <div className="form-actions span-2">
           <Link to="/incidents" className="btn btn-ghost">

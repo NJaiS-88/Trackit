@@ -1,11 +1,14 @@
 package com.trackit.service;
 
 import com.trackit.dto.CreateIncidentRequest;
+import com.trackit.dto.DashboardSummaryResponse;
 import com.trackit.dto.IncidentFilterRequest;
 import com.trackit.dto.IncidentResponse;
 import com.trackit.dto.IncidentSummaryResponse;
 import com.trackit.dto.PagedResponse;
+import com.trackit.dto.StatusChangeRequest;
 import com.trackit.dto.UpdateIncidentRequest;
+import com.trackit.exception.InvalidStatusTransitionException;
 import com.trackit.exception.ResourceNotFoundException;
 import com.trackit.exception.UnauthorizedException;
 import com.trackit.exception.WorkflowViolationException;
@@ -13,9 +16,11 @@ import com.trackit.model.Counter;
 import com.trackit.model.Incident;
 import com.trackit.model.Role;
 import com.trackit.model.User;
+import com.trackit.model.enums.Impact;
 import com.trackit.model.enums.IncidentStatus;
 import com.trackit.model.enums.Priority;
 import com.trackit.model.enums.SlaStatus;
+import com.trackit.model.enums.Urgency;
 import com.trackit.repository.IncidentRepository;
 import com.trackit.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +40,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -44,10 +50,20 @@ import java.util.stream.Stream;
 public class IncidentService {
 
     private static final String ACCESS_DENIED = "Access denied";
+    private static final Map<IncidentStatus, Set<IncidentStatus>> ALLOWED_TRANSITIONS = Map.of(
+            IncidentStatus.OPEN, Set.of(IncidentStatus.ASSIGNED),
+            IncidentStatus.ASSIGNED, Set.of(IncidentStatus.IN_PROGRESS, IncidentStatus.ON_HOLD),
+            IncidentStatus.IN_PROGRESS, Set.of(IncidentStatus.ON_HOLD, IncidentStatus.RESOLVED),
+            IncidentStatus.ON_HOLD, Set.of(IncidentStatus.IN_PROGRESS),
+            IncidentStatus.RESOLVED, Set.of(IncidentStatus.CLOSED, IncidentStatus.REOPENED),
+            IncidentStatus.REOPENED, Set.of(IncidentStatus.ASSIGNED),
+            IncidentStatus.CLOSED, Set.of()
+    );
 
     private final IncidentRepository incidentRepository;
     private final UserRepository userRepository;
     private final MongoTemplate mongoTemplate;
+    private final PriorityService priorityService;
 
     public IncidentResponse createIncident(CreateIncidentRequest req, String createdByUserId) {
         Instant now = Instant.now();
@@ -59,7 +75,7 @@ public class IncidentService {
                 .affectedService(trimToNull(req.affectedService()))
                 .impact(req.impact())
                 .urgency(req.urgency())
-                .priority(Priority.P3) // TODO(Feature 5): derive from impact x urgency matrix
+                .priority(priorityService.calculatePriority(req.impact(), req.urgency()))
                 .status(IncidentStatus.OPEN)
                 .slaStatus(SlaStatus.NORMAL)
                 .createdBy(createdByUserId)
@@ -89,7 +105,17 @@ public class IncidentService {
             criteria.add(Criteria.where("status").is(filter.status().name()));
         }
         if (filter.priority() != null) {
-            criteria.add(Criteria.where("priority").is(filter.priority().name()));
+            List<Criteria> priorityMatches = new ArrayList<>();
+            for (Impact impact : Impact.values()) {
+                for (Urgency urgency : Urgency.values()) {
+                    if (priorityService.calculatePriority(impact, urgency) == filter.priority()) {
+                        priorityMatches.add(new Criteria().andOperator(
+                                Criteria.where("impact").is(impact.name()),
+                                Criteria.where("urgency").is(urgency.name())));
+                    }
+                }
+            }
+            criteria.add(new Criteria().orOperator(priorityMatches));
         }
         if (filter.category() != null) {
             criteria.add(Criteria.where("category").is(filter.category().name()));
@@ -117,6 +143,22 @@ public class IncidentService {
         return PagedResponse.of(content, pageable.getPageNumber(), pageable.getPageSize(), total);
     }
 
+    public DashboardSummaryResponse getDashboardSummary(String userId, Role role) {
+        List<Criteria> scope = new ArrayList<>();
+        scope.add(Criteria.where("active").is(true));
+        switch (role) {
+            case EMPLOYEE -> scope.add(Criteria.where("createdBy").is(userId));
+            case ENGINEER -> scope.add(Criteria.where("assignedTo").is(userId));
+            case ADMIN -> { /* sees everything */ }
+        }
+
+        return new DashboardSummaryResponse(
+                countIncidents(scope, Criteria.where("status").is(IncidentStatus.OPEN.name())),
+                countIncidents(scope, Criteria.where("status").is(IncidentStatus.IN_PROGRESS.name())),
+                countIncidents(scope, Criteria.where("status").is(IncidentStatus.RESOLVED.name())),
+                countIncidents(scope, Criteria.where("slaStatus").is(SlaStatus.BREACHED.name())));
+    }
+
     public IncidentResponse updateIncident(String id, UpdateIncidentRequest req, String userId, Role role) {
         Incident incident = findActiveIncident(id);
         if (role != Role.EMPLOYEE || !Objects.equals(incident.getCreatedBy(), userId)) {
@@ -136,10 +178,29 @@ public class IncidentService {
         if (req.affectedService() != null) {
             incident.setAffectedService(trimToNull(req.affectedService()));
         }
+        incident.setPriority(effectivePriority(incident));
         incident.setUpdatedAt(Instant.now());
 
         // TODO(Feature 9): auditService.log(INCIDENT_UPDATED, incident.getId(), userId)
         return toResponse(incidentRepository.save(incident));
+    }
+
+    public IncidentResponse changeStatus(String incidentId, StatusChangeRequest req,
+                                         String actorUserId, Role role) {
+        Incident incident = findActiveIncident(incidentId);
+        if (role == Role.ENGINEER && !Objects.equals(actorUserId, incident.getAssignedTo())) {
+            throw new UnauthorizedException("You are not assigned to this incident");
+        }
+
+        validateTransition(incident.getStatus(), req.newStatus());
+        IncidentStatus previousStatus = incident.getStatus();
+        incident.setPriority(effectivePriority(incident));
+        incident.setStatus(req.newStatus());
+        incident.setUpdatedAt(Instant.now());
+        Incident saved = incidentRepository.save(incident);
+        // TODO(Feature 9): auditService.log(incidentId, actorUserId, STATUS_CHANGED,
+        //     previousStatus + " -> " + req.newStatus() + ": " + req.reason())
+        return toResponse(saved);
     }
 
     public void deleteIncident(String id, Role role) {
@@ -157,6 +218,25 @@ public class IncidentService {
         return incidentRepository.findById(id)
                 .filter(Incident::isActive)
                 .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
+    }
+
+    private long countIncidents(List<Criteria> scope, Criteria filter) {
+        List<Criteria> criteria = new ArrayList<>(scope);
+        criteria.add(filter);
+        return mongoTemplate.count(new Query(new Criteria().andOperator(criteria)), Incident.class);
+    }
+
+    private static void validateTransition(IncidentStatus current, IncidentStatus next) {
+        if (!ALLOWED_TRANSITIONS.getOrDefault(current, Set.of()).contains(next)) {
+            throw new InvalidStatusTransitionException(current, next);
+        }
+    }
+
+    private Priority effectivePriority(Incident incident) {
+        if (incident.getImpact() == null || incident.getUrgency() == null) {
+            return incident.getPriority();
+        }
+        return priorityService.calculatePriority(incident.getImpact(), incident.getUrgency());
     }
 
     private static void assertCanView(Incident incident, String userId, Role role) {
@@ -194,6 +274,7 @@ public class IncidentService {
     private IncidentResponse toResponse(Incident incident) {
         Map<String, String> names = resolveUserNames(Stream.of(incident.getCreatedBy(), incident.getAssignedTo()));
         Function<String, String> nameOf = id -> id == null ? null : names.get(id);
+        Priority priority = effectivePriority(incident);
         return new IncidentResponse(
                 incident.getId(),
                 incident.getIncidentNumber(),
@@ -203,7 +284,8 @@ public class IncidentService {
                 incident.getAffectedService(),
                 incident.getImpact(),
                 incident.getUrgency(),
-                incident.getPriority(),
+                priority,
+                priority == null ? null : priorityService.getPriorityLabel(priority),
                 incident.getStatus(),
                 incident.getSlaStatus(),
                 incident.getCreatedBy(),
@@ -215,14 +297,16 @@ public class IncidentService {
                 incident.getDueAt());
     }
 
-    private static IncidentSummaryResponse toSummary(Incident incident, Map<String, String> assigneeNames) {
+    private IncidentSummaryResponse toSummary(Incident incident, Map<String, String> assigneeNames) {
         String assignedTo = incident.getAssignedTo();
+        Priority priority = effectivePriority(incident);
         return new IncidentSummaryResponse(
                 incident.getId(),
                 incident.getIncidentNumber(),
                 incident.getTitle(),
                 incident.getCategory(),
-                incident.getPriority(),
+                priority,
+                priority == null ? null : priorityService.getPriorityLabel(priority),
                 incident.getStatus(),
                 incident.getSlaStatus(),
                 incident.getCreatedAt(),

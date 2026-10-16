@@ -838,47 +838,114 @@ textarea.control {
 }
 
 .status-open {
-  --c: var(--info);
+  --c: #1d4ed8;
+  color: #1d4ed8;
+  background: #dbeafe;
+  border-color: #dbeafe;
 }
 
 .status-assigned {
-  --c: #a855f7;
+  --c: #6d28d9;
+  color: #6d28d9;
+  background: #ede9fe;
+  border-color: #ede9fe;
 }
 
 .status-in_progress {
-  --c: var(--primary);
+  --c: #4338ca;
+  color: #4338ca;
+  background: #e0e7ff;
+  border-color: #e0e7ff;
 }
 
 .status-on_hold {
-  --c: var(--p3);
+  --c: #a16207;
+  color: #a16207;
+  background: #fef9c3;
+  border-color: #fef9c3;
 }
 
 .status-resolved {
-  --c: var(--success);
+  --c: #15803d;
+  color: #15803d;
+  background: #dcfce7;
+  border-color: #dcfce7;
 }
 
 .status-reopened {
-  --c: var(--p2);
+  --c: #c2410c;
+  color: #c2410c;
+  background: #ffedd5;
+  border-color: #ffedd5;
 }
 
 .status-closed {
-  --c: #94a3b8;
+  --c: #475569;
+  color: #475569;
+  background: #f1f5f9;
+  border-color: #f1f5f9;
 }
 
 .priority-p1 {
   --c: var(--p1);
+  color: #b91c1c;
+  background: #fee2e2;
+  border-color: #fee2e2;
 }
 
 .priority-p2 {
   --c: var(--p2);
+  color: #c2410c;
+  background: #ffedd5;
+  border-color: #ffedd5;
 }
 
 .priority-p3 {
   --c: var(--p3);
+  color: #a16207;
+  background: #fef9c3;
+  border-color: #fef9c3;
 }
 
 .priority-p4 {
   --c: var(--p4);
+  color: #15803d;
+  background: #dcfce7;
+  border-color: #dcfce7;
+}
+
+.priority-p1 .badge-dot {
+  background: #ef4444;
+}
+
+.priority-p2 .badge-dot {
+  background: #f97316;
+}
+
+.priority-p3 .badge-dot {
+  background: #eab308;
+}
+
+.priority-p4 .badge-dot {
+  background: #22c55e;
+}
+
+.priority-preview {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.priority-preview .field-hint {
+  text-align: left;
+}
+
+.priority-preview-result {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 
 /* ============ Incident detail ============ */
@@ -899,6 +966,61 @@ textarea.control {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+.workflow-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.workflow-stepper li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.workflow-stepper li:not(:last-child)::after {
+  content: '';
+  width: clamp(0.75rem, 4vw, 2.5rem);
+  height: 1px;
+  margin: 0 0.45rem;
+  background: var(--border);
+}
+
+.workflow-stepper li::before {
+  content: '';
+  width: 0.65rem;
+  height: 0.65rem;
+  flex: 0 0 0.65rem;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+}
+
+.workflow-stepper li.completed {
+  color: var(--primary);
+}
+
+.workflow-stepper li.completed::before {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
+.workflow-stepper li.current {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.workflow-stepper li.current::before {
+  border-color: var(--primary);
+  background: var(--surface);
 }
 
 .meta-grid {
@@ -931,6 +1053,43 @@ textarea.control {
   line-height: 1.6;
 }
 
+.status-change-panel form {
+  display: grid;
+  gap: 1rem;
+}
+
+.status-change-field {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.status-change-field .text-muted {
+  display: inline;
+  font-size: inherit;
+  font-weight: 400;
+}
+
+.status-change-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.status-change-panel .alert {
+  margin: 0;
+}
+
+.no-transitions {
+  margin: 1.25rem 0 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .detail-columns {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -946,6 +1105,22 @@ textarea.control {
 @media (max-width: 1024px) {
   .stat-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 560px) {
+    .workflow-stepper {
+      justify-content: space-between;
+    }
+
+    .workflow-stepper li {
+      gap: 0.25rem;
+      font-size: 0.65rem;
+    }
+
+    .workflow-stepper li:not(:last-child)::after {
+      width: clamp(0.2rem, 1.5vw, 0.5rem);
+      margin: 0 0.2rem;
+    }
   }
 }
 

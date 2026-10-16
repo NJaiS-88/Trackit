@@ -18,6 +18,7 @@ public record IncidentResponse(
         Impact impact,
         Urgency urgency,
         Priority priority,
+        String priorityLabel,
         IncidentStatus status,
         SlaStatus slaStatus,
         String createdBy,

@@ -21,6 +21,11 @@ export async function getIncidents(params = {}) {
   return data
 }
 
+export async function getDashboardSummary() {
+  const { data } = await axiosInstance.get('/api/incidents/dashboard/summary')
+  return data
+}
+
 export async function getIncidentById(id) {
   const { data } = await axiosInstance.get(`/api/incidents/${encodeURIComponent(id)}`)
   return data
@@ -28,6 +33,11 @@ export async function getIncidentById(id) {
 
 export async function updateIncident(id, data) {
   const { data: incident } = await axiosInstance.put(`/api/incidents/${encodeURIComponent(id)}`, data)
+  return incident
+}
+
+export async function changeStatus(id, data) {
+  const { data: incident } = await axiosInstance.patch(`/api/incidents/${encodeURIComponent(id)}/status`, data)
   return incident
 }
 

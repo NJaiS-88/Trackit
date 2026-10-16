@@ -1,10 +1,12 @@
 package com.trackit.controller;
 
 import com.trackit.dto.CreateIncidentRequest;
+import com.trackit.dto.DashboardSummaryResponse;
 import com.trackit.dto.IncidentFilterRequest;
 import com.trackit.dto.IncidentResponse;
 import com.trackit.dto.IncidentSummaryResponse;
 import com.trackit.dto.PagedResponse;
+import com.trackit.dto.StatusChangeRequest;
 import com.trackit.dto.UpdateIncidentRequest;
 import com.trackit.exception.UnauthorizedException;
 import com.trackit.security.AuthenticatedUser;
@@ -25,6 +27,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -59,6 +62,13 @@ public class IncidentController {
         return incidentService.getIncidents(filter, pageable, user.id(), user.role());
     }
 
+    @GetMapping("/dashboard/summary")
+    @Operation(summary = "Get incident statistics visible to the caller")
+    public DashboardSummaryResponse getDashboardSummary() {
+        AuthenticatedUser user = getCurrentUser();
+        return incidentService.getDashboardSummary(user.id(), user.role());
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get an incident by id")
     public IncidentResponse getIncident(@PathVariable String id) {
@@ -73,6 +83,15 @@ public class IncidentController {
                                            @Valid @RequestBody UpdateIncidentRequest request) {
         AuthenticatedUser user = getCurrentUser();
         return incidentService.updateIncident(id, request, user.id(), user.role());
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ENGINEER','ADMIN')")
+    @Operation(summary = "Change incident status using the workflow")
+    public IncidentResponse changeStatus(@PathVariable String id,
+                                         @Valid @RequestBody StatusChangeRequest request) {
+        AuthenticatedUser user = getCurrentUser();
+        return incidentService.changeStatus(id, request, user.id(), user.role());
     }
 
     @DeleteMapping("/{id}")

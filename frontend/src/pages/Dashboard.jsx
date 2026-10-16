@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { parseApiError } from '../api/axiosInstance'
-import { getIncidents } from '../api/incidentApi'
+import { getDashboardSummary, getIncidents } from '../api/incidentApi'
 import IncidentTable from '../components/IncidentTable'
 import { useAuth } from '../hooks/useAuth'
 
@@ -11,25 +11,27 @@ const WELCOME_TEXT = {
   ADMIN: 'Overview of all incidents across the organisation.',
 }
 
-// Real counts arrive with the dashboard API in Feature 10
 const STATS = [
-  { label: 'Open', value: 0, tone: 'info' },
-  { label: 'In Progress', value: 0, tone: 'accent' },
-  { label: 'Resolved', value: 0, tone: 'success' },
-  { label: 'SLA Breached', value: 0, tone: 'danger' },
+  { label: 'Open', key: 'open', tone: 'info' },
+  { label: 'In Progress', key: 'inProgress', tone: 'accent' },
+  { label: 'Resolved', key: 'resolved', tone: 'success' },
+  { label: 'SLA Breached', key: 'slaBreached', tone: 'danger' },
 ]
 
 export default function Dashboard() {
   const { user, role } = useAuth()
   const [incidents, setIncidents] = useState([])
+  const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   useEffect(() => {
     let ignore = false
-    getIncidents({ page: 0, size: 5 })
-      .then((data) => {
-        if (!ignore) setIncidents(data.content)
+    Promise.all([getIncidents({ page: 0, size: 5 }), getDashboardSummary()])
+      .then(([incidentPage, dashboardSummary]) => {
+        if (ignore) return
+        setIncidents(incidentPage.content)
+        setSummary(dashboardSummary)
       })
       .catch((err) => {
         if (!ignore) setError(parseApiError(err).message)
@@ -60,7 +62,7 @@ export default function Dashboard() {
         {STATS.map((stat) => (
           <div key={stat.label} className={`stat-card glass tone-${stat.tone}`}>
             <span className="stat-label">{stat.label}</span>
-            <span className="stat-value">{stat.value}</span>
+            <span className="stat-value">{summary?.[stat.key] ?? '—'}</span>
           </div>
         ))}
       </section>

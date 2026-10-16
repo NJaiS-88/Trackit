@@ -1,21 +1,48 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { parseApiError } from '../api/axiosInstance'
-import { getIncidentById } from '../api/incidentApi'
+import { changeStatus, getIncidentById } from '../api/incidentApi'
 import PriorityBadge from '../components/PriorityBadge'
 import Spinner from '../components/Spinner'
 import StatusBadge from '../components/StatusBadge'
-import { CATEGORY_LABELS, LEVEL_LABELS } from '../constants/incident'
+import { CATEGORY_LABELS, STATUS_LABELS } from '../constants/incident'
 import { formatDateTime } from '../utils/format'
+import { useAuth } from '../hooks/useAuth'
 
 const ERROR_MESSAGES = {
   403: "You don't have access to this incident.",
   404: 'This incident does not exist or has been deleted.',
 }
 
+const ALLOWED_TRANSITIONS = {
+  OPEN: ['ASSIGNED'],
+  ASSIGNED: ['IN_PROGRESS', 'ON_HOLD'],
+  IN_PROGRESS: ['ON_HOLD', 'RESOLVED'],
+  ON_HOLD: ['IN_PROGRESS'],
+  RESOLVED: ['CLOSED', 'REOPENED'],
+  REOPENED: ['ASSIGNED'],
+  CLOSED: [],
+}
+
+const WORKFLOW_STEPS = ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']
+const WORKFLOW_STEP_INDEX = {
+  OPEN: 0,
+  ASSIGNED: 1,
+  IN_PROGRESS: 2,
+  ON_HOLD: 2,
+  RESOLVED: 3,
+  REOPENED: 1,
+  CLOSED: 4,
+}
+
 export default function IncidentDetail() {
   const { id } = useParams()
+  const { role } = useAuth()
   const [state, setState] = useState({ incident: null, error: null, loading: true, forId: id })
+  const [newStatus, setNewStatus] = useState('')
+  const [reason, setReason] = useState('')
+  const [statusError, setStatusError] = useState(null)
+  const [statusSubmitting, setStatusSubmitting] = useState(false)
 
   // Reset synchronously when navigating between incidents so stale data never flashes
   if (state.forId !== id) {
@@ -39,6 +66,32 @@ export default function IncidentDetail() {
   }, [id])
 
   const { incident, error, loading } = state
+
+  const handleStatusSubmit = async (event) => {
+    event.preventDefault()
+    setStatusError(null)
+    setStatusSubmitting(true)
+    try {
+      const updatedIncident = await changeStatus(id, { newStatus, reason })
+      setState((current) => ({ ...current, incident: updatedIncident }))
+      setNewStatus('')
+      setReason('')
+
+      try {
+        const refreshedIncident = await getIncidentById(id)
+        setState((current) => ({ ...current, incident: refreshedIncident }))
+      } catch {
+        setStatusError('Status changed, but the incident could not be refreshed. Reload to verify.')
+      }
+    } catch (err) {
+      const { status, message } = parseApiError(err)
+      if (status === 400) setStatusError('This status transition is not allowed')
+      else if (status === 403) setStatusError("You are not authorized to change this incident's status")
+      else setStatusError(message)
+    } finally {
+      setStatusSubmitting(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -66,10 +119,14 @@ export default function IncidentDetail() {
     { label: 'Assigned to', value: incident.assignedToName ?? 'Unassigned' },
     { label: 'Category', value: CATEGORY_LABELS[incident.category] ?? incident.category },
     { label: 'Affected Service', value: incident.affectedService ?? '—' },
-    { label: 'Impact', value: LEVEL_LABELS[incident.impact] ?? incident.impact },
-    { label: 'Urgency', value: LEVEL_LABELS[incident.urgency] ?? incident.urgency },
+    { label: 'Impact', value: incident.impact },
+    { label: 'Urgency', value: incident.urgency },
+    { label: 'Priority', value: <PriorityBadge priority={incident.priority} label={incident.priorityLabel} /> },
     { label: 'Created At', value: formatDateTime(incident.createdAt) },
   ]
+  const canChangeStatus = role === 'ENGINEER' || role === 'ADMIN'
+  const allowedTransitions = ALLOWED_TRANSITIONS[incident.status] ?? []
+  const currentWorkflowStep = WORKFLOW_STEP_INDEX[incident.status] ?? 0
 
   return (
     <div className="page page-narrow">
@@ -81,9 +138,20 @@ export default function IncidentDetail() {
         <span className="detail-number">{incident.incidentNumber}</span>
         <h1>{incident.title}</h1>
         <div className="badge-row">
-          <PriorityBadge priority={incident.priority} />
+          <PriorityBadge priority={incident.priority} label={incident.priorityLabel} />
           <StatusBadge status={incident.status} />
         </div>
+        <ol className="workflow-stepper" aria-label="Incident workflow">
+          {WORKFLOW_STEPS.map((step, index) => (
+            <li
+              key={step}
+              className={index < currentWorkflowStep ? 'completed' : index === currentWorkflowStep ? 'current' : ''}
+              aria-current={index === currentWorkflowStep ? 'step' : undefined}
+            >
+              {STATUS_LABELS[step]}
+            </li>
+          ))}
+        </ol>
         <dl className="meta-grid">
           {meta.map((item) => (
             <div key={item.label} className="meta-item">
@@ -98,6 +166,48 @@ export default function IncidentDetail() {
         <h2>Description</h2>
         <p className="description">{incident.description}</p>
       </section>
+
+      {canChangeStatus && (
+        allowedTransitions.length > 0 ? (
+          <section className="card glass status-change-panel">
+            <h2>Change Status</h2>
+            <form onSubmit={handleStatusSubmit}>
+              <label className="status-change-field">
+                <span>New status</span>
+                <select
+                  className="control"
+                  value={newStatus}
+                  onChange={(event) => setNewStatus(event.target.value)}
+                  required
+                >
+                  <option value="" disabled>Select a status</option>
+                  {allowedTransitions.map((status) => (
+                    <option key={status} value={status}>{STATUS_LABELS[status]}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="status-change-field">
+                <span>Reason <span className="text-muted">(optional)</span></span>
+                <input
+                  className="control"
+                  type="text"
+                  maxLength={500}
+                  value={reason}
+                  onChange={(event) => setReason(event.target.value)}
+                />
+              </label>
+              {statusError && <div className="alert alert-error" role="alert">{statusError}</div>}
+              <div className="status-change-actions">
+                <button className="btn btn-primary" type="submit" disabled={statusSubmitting || !newStatus}>
+                  {statusSubmitting ? <><Spinner size={15} /> Updating…</> : 'Update Status'}
+                </button>
+              </div>
+            </form>
+          </section>
+        ) : (
+          <p className="no-transitions">No further transitions available</p>
+        )
+      )}
 
       <div className="detail-columns">
         <section className="card glass placeholder">

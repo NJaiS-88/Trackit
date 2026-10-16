@@ -61,7 +61,7 @@ export default function IncidentTable({ incidents, loading, onRowClick, emptyMes
               <td className="cell-title">{incident.title}</td>
               <td>{CATEGORY_LABELS[incident.category] ?? incident.category}</td>
               <td>
-                <PriorityBadge priority={incident.priority} />
+                <PriorityBadge priority={incident.priority} label={incident.priorityLabel} />
               </td>
               <td>
                 <StatusBadge status={incident.status} />

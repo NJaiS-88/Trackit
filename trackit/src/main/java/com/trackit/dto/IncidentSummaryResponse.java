@@ -12,6 +12,7 @@ public record IncidentSummaryResponse(
         String title,
         String category,
         Priority priority,
+        String priorityLabel,
         IncidentStatus status,
         SlaStatus slaStatus,
         Instant createdAt,
