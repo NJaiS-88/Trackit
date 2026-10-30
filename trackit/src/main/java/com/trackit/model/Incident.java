@@ -63,7 +63,20 @@ public class Incident {
 
     private Instant updatedAt;
 
+    /** SLA deadline: createdAt + target for the priority + time spent paused. */
     private Instant dueAt;
+
+    /** When the incident turns "due soon"; stored so the SLA job can query it. */
+    private Instant slaWarningAt;
+
+    /** When the SLA clock was paused (On Hold or Resolved); null while it runs. */
+    private Instant slaPausedAt;
+
+    /** Total time the clock has been paused, already added to {@link #dueAt}. */
+    private long slaPausedMillis;
+
+    /** When the incident was last resolved. */
+    private Instant resolvedAt;
 
     /** False once soft-deleted by an admin. */
     @Builder.Default

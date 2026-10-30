@@ -34,6 +34,9 @@ public class MongoConfig {
         incidents.ensureIndex(new Index().on("priority", Sort.Direction.ASC));
         incidents.ensureIndex(new Index().on("category", Sort.Direction.ASC));
         incidents.ensureIndex(new Index().on("createdAt", Sort.Direction.DESC));
+        // The SLA job looks up running incidents whose warning time or deadline has passed
+        incidents.ensureIndex(new Index().on("slaStatus", Sort.Direction.ASC).on("slaWarningAt", Sort.Direction.ASC));
+        incidents.ensureIndex(new Index().on("slaStatus", Sort.Direction.ASC).on("dueAt", Sort.Direction.ASC));
 
         IndexOperations accountRequests = mongoTemplate.indexOps(AccountRequest.class);
         // At most one pending request per email; reviewed requests are kept as history
