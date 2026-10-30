@@ -311,6 +311,12 @@ textarea.control {
   color: #b91c1c;
 }
 
+.alert-success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+}
+
 .page > .alert {
   margin-bottom: 1rem;
 }
@@ -753,6 +759,11 @@ textarea.control {
   text-align: right !important;
 }
 
+.action-group {
+  display: inline-flex;
+  gap: 0.5rem;
+}
+
 .table-empty {
   text-align: center !important;
   padding: 2rem 1rem !important;
@@ -884,6 +895,13 @@ textarea.control {
   color: #475569;
   background: #f1f5f9;
   border-color: #f1f5f9;
+}
+
+.status-rejected {
+  --c: #b91c1c;
+  color: #b91c1c;
+  background: #fee2e2;
+  border-color: #fee2e2;
 }
 
 .priority-p1 {

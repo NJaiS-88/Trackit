@@ -9,8 +9,9 @@ IT Incident Management System — a Spring Boot REST API with a React frontend.
 
 ## Features
 
-- **Authentication** — register / login with email and password, BCrypt-hashed passwords, stateless JWT (HS256) auth.
-- **Roles** — `EMPLOYEE`, `ENGINEER`, `ADMIN`. Sign-up can create an `EMPLOYEE` or `ADMIN`. An admin assigns the `ENGINEER` role.
+- **Authentication** — login with email and password, BCrypt-hashed passwords, stateless JWT (HS256) auth.
+- **Account requests** — nobody can create an account directly. Sign-up files a request; an admin approves it (creating an `EMPLOYEE`) or rejects it. Until then, logging in explains that the request is pending or rejected.
+- **Roles** — `EMPLOYEE`, `ENGINEER`, `ADMIN`. Approved requests become `EMPLOYEE`; an admin assigns other roles from the user list.
 - **User management (admin)** — paginated user list, change roles, activate / deactivate accounts. The last active admin cannot be demoted or deactivated.
 - **Incidents** — employees report incidents (auto-numbered `INC-YYYY-000001`), filter and page through them, and view details. Employees see their own incidents, engineers see incidents assigned to them, admins see everything.
 
@@ -41,6 +42,9 @@ The API starts on <http://localhost:8081>. Swagger UI: <http://localhost:8081/sw
 | `MONGO_DATABASE` | no | `trackit` | Database name |
 | `PORT` | no | `8081` | HTTP port |
 | `API_DOCS_ENABLED` | no | `true` | Serve Swagger UI and `/v3/api-docs` |
+| `ADMIN_EMAIL` | no | — | First admin, created at startup only if no active admin exists |
+| `ADMIN_PASSWORD` | no | — | Password for that admin (at least 8 characters) |
+| `ADMIN_NAME` | no | `Administrator` | Display name for that admin |
 
 ### Frontend
 
@@ -54,7 +58,9 @@ Open <http://localhost:5173>. To point the frontend at a different API URL, copy
 
 ### First admin
 
-Choose **Admin** in the role dropdown when you register. Engineer accounts are created by an admin from the user list.
+Account requests need an admin to approve them, so the first admin comes from configuration. Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` (in `.env` locally, or on Render) and restart the backend. On startup, if there is no active admin, Trackit creates that account — or, if a user with that email already exists, promotes it to admin and keeps its password. Once any active admin exists the variables are ignored, so you can remove them afterwards.
+
+Admins review sign-ups under **Account Requests** in the sidebar, and change roles (e.g. to Engineer) under **Admin Users**.
 
 ## Deployment
 
@@ -70,6 +76,7 @@ Render's outbound IPs are not fixed, so in Atlas → **Network Access** allow `0
 2. When prompted, set:
    - `MONGO_URI` — your Atlas connection string
    - `CORS_ALLOWED_ORIGINS` — your Vercel URL, e.g. `https://trackit.vercel.app` (you can update this after step 3)
+   - `ADMIN_EMAIL` / `ADMIN_PASSWORD` — the first admin account (see [First admin](#first-admin))
    - `JWT_SECRET` is generated automatically.
 3. Wait for the deploy; Render checks `GET /actuator/health`. Note the service URL, e.g. `https://trackit-api.onrender.com`.
 
@@ -88,8 +95,11 @@ On the free plan the service sleeps after inactivity; the first request afterwar
 
 | Method | Path | Access |
 |---|---|---|
-| `POST` | `/api/auth/register` | Public |
+| `POST` | `/api/auth/register` | Public — files an account request (`202`) |
 | `POST` | `/api/auth/login` | Public |
+| `GET` | `/api/admin/account-requests?status=PENDING&page=0&size=20` | Admin |
+| `POST` | `/api/admin/account-requests/{id}/approve` | Admin |
+| `POST` | `/api/admin/account-requests/{id}/reject` | Admin |
 | `GET` | `/api/admin/users?page=0&size=20` | Admin |
 | `GET` | `/api/admin/users/{id}` | Admin |
 | `PATCH` | `/api/admin/users/{id}/role` | Admin |

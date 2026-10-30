@@ -51,7 +51,7 @@ export default function Login() {
       subtitle="Sign in to report and track IT incidents"
       footer={
         <>
-          New to Trackit? <Link to="/register">Create an account</Link>
+          New to Trackit? <Link to="/register">Request an account</Link>
         </>
       }
     >

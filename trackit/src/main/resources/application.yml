@@ -29,6 +29,13 @@ security:
     # Comma-separated origins (patterns allowed), e.g. https://trackit.vercel.app,http://localhost:5173
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
 
+trackit:
+  bootstrap-admin:
+    # Created at startup only when no active admin exists; leave email/password blank to skip
+    name: ${ADMIN_NAME:Administrator}
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
+
 management:
   endpoints:
     web:

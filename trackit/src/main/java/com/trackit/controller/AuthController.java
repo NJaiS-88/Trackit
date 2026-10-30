@@ -1,5 +1,6 @@
 package com.trackit.controller;
 
+import com.trackit.dto.AccountRequestResponse;
 import com.trackit.dto.AuthResponse;
 import com.trackit.dto.LoginRequest;
 import com.trackit.dto.RegisterRequest;
@@ -18,15 +19,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@Tag(name = "Authentication", description = "Register and log in to obtain a JWT")
+@Tag(name = "Authentication", description = "Request an account and log in to obtain a JWT")
 public class AuthController {
 
     private final AuthService authService;
 
     @PostMapping("/register")
-    @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Register a new employee or admin account")
-    public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    @Operation(summary = "Request an employee account; an admin must approve it before you can log in")
+    public AccountRequestResponse register(@Valid @RequestBody RegisterRequest request) {
         return authService.register(request);
     }
 

@@ -1,25 +1,20 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import * as authApi from '../api/authApi'
 import { parseApiError } from '../api/axiosInstance'
 import AuthLayout from '../components/AuthLayout'
 import FloatingField from '../components/FloatingField'
-import FormField from '../components/FormField'
 import Spinner from '../components/Spinner'
-import { SIGNUP_ROLE_LABELS, SIGNUP_ROLES } from '../constants/roles'
-import { useAuth } from '../hooks/useAuth'
 import { validateRegister } from '../utils/validation'
 
-const EMPTY_FORM = { name: '', email: '', password: '', confirmPassword: '', role: '' }
+const EMPTY_FORM = { name: '', email: '', password: '', confirmPassword: '' }
 
 export default function Register() {
-  const { login } = useAuth()
-  const navigate = useNavigate()
-
   const [form, setForm] = useState(EMPTY_FORM)
   const [errors, setErrors] = useState({})
   const [formError, setFormError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [submittedRequest, setSubmittedRequest] = useState(null)
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -37,26 +32,45 @@ export default function Register() {
 
     setSubmitting(true)
     try {
-      const response = await authApi.register({
+      const request = await authApi.requestAccount({
         name: form.name.trim(),
         email: form.email.trim(),
         password: form.password,
-        role: form.role,
       })
-      login(response)
-      navigate('/dashboard', { replace: true })
+      setSubmittedRequest(request)
+      setForm(EMPTY_FORM)
     } catch (error) {
       const { message, fieldErrors } = parseApiError(error)
       setErrors(fieldErrors)
       setFormError(message)
+    } finally {
       setSubmitting(false)
     }
   }
 
+  if (submittedRequest) {
+    return (
+      <AuthLayout
+        title="Request sent"
+        subtitle="An administrator will review your request"
+        footer={
+          <>
+            Already approved? <Link to="/login">Sign in</Link>
+          </>
+        }
+      >
+        <div className="alert alert-success" role="status">
+          Your account request for <strong>{submittedRequest.email}</strong> is awaiting approval. You can sign in
+          with the password you chose once an admin approves it.
+        </div>
+      </AuthLayout>
+    )
+  }
+
   return (
     <AuthLayout
-      title="Create your account"
-      subtitle="Choose Employee or Admin for this account"
+      title="Request an account"
+      subtitle="An administrator must approve your request before you can sign in"
       footer={
         <>
           Already have an account? <Link to="/login">Sign in</Link>
@@ -80,7 +94,7 @@ export default function Register() {
         />
         <FloatingField
           id="email"
-          label="Email address"
+          label="Work email address"
           type="email"
           autoComplete="email"
           value={form.email}
@@ -105,17 +119,9 @@ export default function Register() {
           onChange={handleChange}
           error={errors.confirmPassword}
         />
-        <FormField id="role" label="Role" as="select" value={form.role} onChange={handleChange} error={errors.role} required>
-          <option value="">Select a role</option>
-          {SIGNUP_ROLES.map((role) => (
-            <option key={role} value={role}>
-              {SIGNUP_ROLE_LABELS[role]}
-            </option>
-          ))}
-        </FormField>
         <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
           {submitting && <Spinner />}
-          {submitting ? 'Creating account…' : 'Create Account'}
+          {submitting ? 'Sending request…' : 'Send Request'}
         </button>
       </form>
     </AuthLayout>

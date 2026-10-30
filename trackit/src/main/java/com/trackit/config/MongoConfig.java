@@ -1,5 +1,6 @@
 package com.trackit.config;
 
+import com.trackit.model.AccountRequest;
 import com.trackit.model.Incident;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -9,6 +10,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.index.IndexOperations;
+import org.springframework.data.mongodb.core.index.PartialIndexFilter;
+import org.springframework.data.mongodb.core.query.Criteria;
 
 /** Creates collection indexes at startup; index creation is idempotent. */
 @Configuration
@@ -27,5 +30,13 @@ public class MongoConfig {
         incidents.ensureIndex(new Index().on("priority", Sort.Direction.ASC));
         incidents.ensureIndex(new Index().on("category", Sort.Direction.ASC));
         incidents.ensureIndex(new Index().on("createdAt", Sort.Direction.DESC));
+
+        IndexOperations accountRequests = mongoTemplate.indexOps(AccountRequest.class);
+        // At most one pending request per email; reviewed requests are kept as history
+        accountRequests.ensureIndex(new Index().on("email", Sort.Direction.ASC).unique()
+                .named("email_pending_unique")
+                .partial(PartialIndexFilter.of(Criteria.where("status").is("PENDING"))));
+        accountRequests.ensureIndex(new Index().on("email", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC));
+        accountRequests.ensureIndex(new Index().on("status", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC));
     }
 }

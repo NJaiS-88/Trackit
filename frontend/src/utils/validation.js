@@ -18,9 +18,7 @@ export function validateLogin({ email, password }) {
   return errors
 }
 
-const SIGNUP_ROLES = new Set(['EMPLOYEE', 'ADMIN'])
-
-export function validateRegister({ name, email, password, confirmPassword, role }) {
+export function validateRegister({ name, email, password, confirmPassword }) {
   const errors = {}
   const trimmedName = name.trim()
   if (!trimmedName) errors.name = 'Name is required'
@@ -37,9 +35,6 @@ export function validateRegister({ name, email, password, confirmPassword, role 
   }
 
   if (confirmPassword !== password) errors.confirmPassword = 'Passwords do not match'
-
-  if (!role) errors.role = 'Role is required'
-  else if (!SIGNUP_ROLES.has(role)) errors.role = 'Role must be Employee or Admin'
   return errors
 }
 

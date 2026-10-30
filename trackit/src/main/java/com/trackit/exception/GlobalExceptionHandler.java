@@ -121,6 +121,18 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
     }
 
+    @ExceptionHandler(AccountRequestPendingException.class)
+    public ResponseEntity<ApiErrorResponse> handleRequestPending(AccountRequestPendingException ex,
+                                                                 HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(AccountNotApprovedException.class)
+    public ResponseEntity<ApiErrorResponse> handleNotApproved(AccountNotApprovedException ex,
+                                                              HttpServletRequest request) {
+        return build(HttpStatus.FORBIDDEN, ex.getMessage(), request, null);
+    }
+
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ApiErrorResponse> handleNoEndpoint(NoResourceFoundException ex,
                                                              HttpServletRequest request) {

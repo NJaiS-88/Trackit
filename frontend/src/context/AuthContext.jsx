@@ -8,7 +8,7 @@ const MAX_TIMEOUT_MS = 2_147_483_647
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(() => getStoredSession())
 
-  /** Stores the AuthResponse returned by authApi.login / authApi.register. */
+  /** Stores the AuthResponse returned by authApi.login. */
   const login = useCallback((authResponse) => {
     const next = createSession(authResponse)
     storeSession(next)
