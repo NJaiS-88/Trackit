@@ -6,7 +6,7 @@ import PriorityBadge from '../components/PriorityBadge'
 import Spinner from '../components/Spinner'
 import StatusBadge from '../components/StatusBadge'
 import WorkStatusBadge from '../components/WorkStatusBadge'
-import { CATEGORY_LABELS, STATUS_LABELS } from '../constants/incident'
+import { CATEGORY_LABELS, impactAnswer, LEVEL_LABELS, STATUS_LABELS, urgencyAnswer } from '../constants/incident'
 import { formatDateTime } from '../utils/format'
 import { useAuth } from '../hooks/useAuth'
 
@@ -133,8 +133,15 @@ export default function IncidentDetail() {
       : []),
     { label: 'Category', value: CATEGORY_LABELS[incident.category] ?? incident.category },
     { label: 'Affected Service', value: incident.affectedService ?? '—' },
-    { label: 'Impact', value: incident.impact },
-    { label: 'Urgency', value: incident.urgency },
+    // The reporter's own answer, with the level it maps to for engineers triaging the ticket
+    {
+      label: 'Who is affected',
+      value: `${impactAnswer(incident.impact)} (${LEVEL_LABELS[incident.impact] ?? incident.impact} impact)`,
+    },
+    {
+      label: 'Can they keep working',
+      value: `${urgencyAnswer(incident.urgency)} (${LEVEL_LABELS[incident.urgency] ?? incident.urgency} urgency)`,
+    },
     { label: 'Priority', value: <PriorityBadge priority={incident.priority} label={incident.priorityLabel} /> },
     { label: 'Created At', value: formatDateTime(incident.createdAt) },
   ]

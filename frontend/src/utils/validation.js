@@ -65,7 +65,7 @@ export function validateIncident({ title, description, category, affectedService
   if (affectedService.trim().length > 120) {
     errors.affectedService = 'Affected service must be at most 120 characters'
   }
-  if (!impact) errors.impact = 'Impact is required'
-  if (!urgency) errors.urgency = 'Urgency is required'
+  if (!impact) errors.impact = 'Tell us who is affected'
+  if (!urgency) errors.urgency = 'Tell us whether you can keep working'
   return errors
 }
