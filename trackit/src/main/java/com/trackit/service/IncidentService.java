@@ -128,10 +128,9 @@ public class IncidentService {
             criteria.add(Criteria.where("assignedTo").is(filter.assignedTo().trim()));
         }
 
-        switch (role) {
-            case EMPLOYEE -> criteria.add(Criteria.where("createdBy").is(userId));
-            case ENGINEER -> criteria.add(Criteria.where("assignedTo").is(userId));
-            case ADMIN -> { /* sees everything */ }
+        Criteria scope = visibilityScope(userId, role);
+        if (scope != null) {
+            criteria.add(scope);
         }
 
         // andOperator (not chained addCriteria) so the same field may appear in both filter and scope
@@ -150,10 +149,9 @@ public class IncidentService {
     public DashboardSummaryResponse getDashboardSummary(String userId, Role role) {
         List<Criteria> scope = new ArrayList<>();
         scope.add(Criteria.where("active").is(true));
-        switch (role) {
-            case EMPLOYEE -> scope.add(Criteria.where("createdBy").is(userId));
-            case ENGINEER -> scope.add(Criteria.where("assignedTo").is(userId));
-            case ADMIN -> { /* sees everything */ }
+        Criteria visibility = visibilityScope(userId, role);
+        if (visibility != null) {
+            scope.add(visibility);
         }
 
         return new DashboardSummaryResponse(
@@ -245,15 +243,44 @@ public class IncidentService {
         return priorityService.calculatePriority(incident.getImpact(), incident.getUrgency());
     }
 
-    private static void assertCanView(Incident incident, String userId, Role role) {
+    private void assertCanView(Incident incident, String userId, Role role) {
         boolean allowed = switch (role) {
             case EMPLOYEE -> Objects.equals(incident.getCreatedBy(), userId);
-            case ENGINEER -> Objects.equals(incident.getAssignedTo(), userId);
+            case ENGINEER -> Objects.equals(incident.getAssignedTo(), userId)
+                    || departmentMemberIds(userId).contains(incident.getCreatedBy());
             case ADMIN -> true;
         };
         if (!allowed) {
             throw new UnauthorizedException(ACCESS_DENIED);
         }
+    }
+
+    /**
+     * Which incidents a user may see; null means all. Employees see what they reported. Leads (engineers) see
+     * what is assigned to them plus everything raised in their department, so new tickets show up before they
+     * are assigned.
+     */
+    private Criteria visibilityScope(String userId, Role role) {
+        return switch (role) {
+            case EMPLOYEE -> Criteria.where("createdBy").is(userId);
+            case ENGINEER -> {
+                List<String> departmentMembers = departmentMemberIds(userId);
+                yield departmentMembers.isEmpty()
+                        ? Criteria.where("assignedTo").is(userId)
+                        : new Criteria().orOperator(
+                                Criteria.where("assignedTo").is(userId),
+                                Criteria.where("createdBy").in(departmentMembers));
+            }
+            case ADMIN -> null;
+        };
+    }
+
+    /** Everyone in the Lead's department; empty if the Lead has none. */
+    private List<String> departmentMemberIds(String leadId) {
+        return userRepository.findById(leadId)
+                .map(User::getDepartmentId)
+                .map(departmentId -> userRepository.findByDepartmentId(departmentId).stream().map(User::getId).toList())
+                .orElse(List.of());
     }
 
     /** Atomically increments a per-year counter, producing e.g. {@code INC-2026-000001}. */
