@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +24,10 @@ public interface UserRepository extends MongoRepository<User, String> {
     List<User> findByRole(Role role);
 
     List<User> findByDepartmentIdAndRoleAndActiveTrueOrderByNameAsc(String departmentId, Role role);
+
+    List<User> findByDepartmentIdInAndRoleAndActiveTrueOrderByNameAsc(Collection<String> departmentIds, Role role);
+
+    List<User> findByProjectIdInAndRoleAndActiveTrueOrderByNameAsc(Collection<String> projectIds, Role role);
 
     long countByRoleAndActiveTrue(Role role);
 }

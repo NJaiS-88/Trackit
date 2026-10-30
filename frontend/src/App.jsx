@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppLayout from './components/AppLayout'
 import AccountRequests from './pages/AccountRequests'
+import AdminProjects from './pages/AdminProjects'
 import AdminUsers from './pages/AdminUsers'
 import CreateIncident from './pages/CreateIncident'
 import Dashboard from './pages/Dashboard'
@@ -71,6 +72,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={['ADMIN']}>
               <Departments />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/projects"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminProjects />
             </ProtectedRoute>
           }
         />

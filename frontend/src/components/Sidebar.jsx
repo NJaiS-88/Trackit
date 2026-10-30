@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: '/admin/users', label: 'Admin Users', icon: '◎', roles: ['ADMIN'] },
   { to: '/admin/requests', label: 'Account Requests', icon: '✉', roles: ['ADMIN'] },
   { to: '/admin/departments', label: 'Departments', icon: '▤', roles: ['ADMIN'] },
+  { to: '/admin/projects', label: 'Projects', icon: '◫', roles: ['ADMIN'] },
 ]
 
 export default function Sidebar({ open, onNavigate }) {

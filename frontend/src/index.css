@@ -713,6 +713,15 @@ textarea.control {
   margin-bottom: 1rem;
 }
 
+.stat-grid + .filter-bar {
+  margin-top: 1rem;
+}
+
+.table-footnote {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+}
+
 .filter-bar .control {
   width: auto;
   min-width: 160px;
