@@ -5,6 +5,7 @@ import com.trackit.model.enums.IncidentStatus;
 import com.trackit.model.enums.Priority;
 import com.trackit.model.enums.SlaStatus;
 import com.trackit.model.enums.Urgency;
+import com.trackit.model.enums.WorkItemStatus;
 
 import java.time.Instant;
 
@@ -27,6 +28,9 @@ public record IncidentResponse(
         String assignedToName,
         Instant createdAt,
         Instant updatedAt,
-        Instant dueAt
+        Instant dueAt,
+        // The employee a Lead assigned to fix it, and their progress; null until assigned
+        String workAssigneeName,
+        WorkItemStatus workStatus
 ) {
 }

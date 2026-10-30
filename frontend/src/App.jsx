@@ -1,7 +1,9 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppLayout from './components/AppLayout'
 import AccountRequests from './pages/AccountRequests'
+import AdminProjects from './pages/AdminProjects'
 import AdminUsers from './pages/AdminUsers'
+import AdminWork from './pages/AdminWork'
 import CreateIncident from './pages/CreateIncident'
 import Dashboard from './pages/Dashboard'
 import Departments from './pages/Departments'
@@ -9,6 +11,8 @@ import IncidentDetail from './pages/IncidentDetail'
 import Incidents from './pages/Incidents'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import Team from './pages/Team'
+import TeamWork from './pages/TeamWork'
 import GuestRoute from './routes/GuestRoute'
 import ProtectedRoute from './routes/ProtectedRoute'
 
@@ -42,6 +46,22 @@ export default function App() {
         />
         <Route path="/incidents/:id" element={<IncidentDetail />} />
         <Route
+          path="/team"
+          element={
+            <ProtectedRoute allowedRoles={['ENGINEER']}>
+              <Team />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/team/work"
+          element={
+            <ProtectedRoute allowedRoles={['ENGINEER']}>
+              <TeamWork />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/admin/users"
           element={
             <ProtectedRoute allowedRoles={['ADMIN']}>
@@ -62,6 +82,22 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={['ADMIN']}>
               <Departments />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/projects"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminProjects />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/work"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminWork />
             </ProtectedRoute>
           }
         />

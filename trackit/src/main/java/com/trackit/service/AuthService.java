@@ -11,9 +11,14 @@ import com.trackit.exception.EmailAlreadyExistsException;
 import com.trackit.exception.InvalidRefreshTokenException;
 import com.trackit.exception.ResourceNotFoundException;
 import com.trackit.model.AccountRequest;
+import com.trackit.model.Department;
+import com.trackit.model.Project;
+import com.trackit.model.Role;
 import com.trackit.model.User;
 import com.trackit.model.enums.AccountRequestStatus;
 import com.trackit.repository.AccountRequestRepository;
+import com.trackit.repository.DepartmentRepository;
+import com.trackit.repository.ProjectRepository;
 import com.trackit.repository.UserRepository;
 import com.trackit.security.JwtService;
 import com.trackit.security.LoginRateLimiter;
@@ -43,6 +48,8 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final AccountRequestRepository accountRequestRepository;
+    private final DepartmentRepository departmentRepository;
+    private final ProjectRepository projectRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
@@ -92,7 +99,7 @@ public class AuthService {
         }
         loginRateLimiter.reset(email);
 
-        UserSummary user = new UserSummary(principal.getId(), principal.getName(), principal.getEmail(), principal.getRole());
+        UserSummary user = getCurrentUser(principal.getId());
         return new Session(user,
                 jwtService.generateAccessToken(principal.getId(), principal.getRole()),
                 refreshTokenService.issue(principal.getId()));
@@ -134,7 +141,7 @@ public class AuthService {
 
     public UserSummary getCurrentUser(String userId) {
         return userRepository.findById(userId)
-                .map(AuthService::toSummary)
+                .map(this::toSummary)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
     }
 
@@ -150,8 +157,15 @@ public class AuthService {
                 });
     }
 
-    private static UserSummary toSummary(User user) {
-        return new UserSummary(user.getId(), user.getName(), user.getEmail(), user.getRole());
+    private UserSummary toSummary(User user) {
+        String departmentName = user.getRole() == Role.ADMIN || user.getDepartmentId() == null
+                ? null
+                : departmentRepository.findById(user.getDepartmentId()).map(Department::getName).orElse(null);
+        String projectName = user.getRole() != Role.EMPLOYEE || user.getProjectId() == null
+                ? null
+                : projectRepository.findById(user.getProjectId()).map(Project::getName).orElse(null);
+        return new UserSummary(user.getId(), user.getName(), user.getEmail(), user.getRole(),
+                departmentName, projectName);
     }
 
     private static String normalizeEmail(String email) {

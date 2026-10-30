@@ -5,6 +5,7 @@ import { changeStatus, getIncidentById } from '../api/incidentApi'
 import PriorityBadge from '../components/PriorityBadge'
 import Spinner from '../components/Spinner'
 import StatusBadge from '../components/StatusBadge'
+import WorkStatusBadge from '../components/WorkStatusBadge'
 import { CATEGORY_LABELS, STATUS_LABELS } from '../constants/incident'
 import { formatDateTime } from '../utils/format'
 import { useAuth } from '../hooks/useAuth'
@@ -117,6 +118,19 @@ export default function IncidentDetail() {
   const meta = [
     { label: 'Created by', value: incident.createdByName ?? 'Unknown user' },
     { label: 'Assigned to', value: incident.assignedToName ?? 'Unassigned' },
+    ...(incident.workAssigneeName
+      ? [
+          {
+            label: 'Handled by',
+            value: (
+              <span className="assignee-cell">
+                {incident.workAssigneeName}
+                <WorkStatusBadge status={incident.workStatus} />
+              </span>
+            ),
+          },
+        ]
+      : []),
     { label: 'Category', value: CATEGORY_LABELS[incident.category] ?? incident.category },
     { label: 'Affected Service', value: incident.affectedService ?? '—' },
     { label: 'Impact', value: incident.impact },

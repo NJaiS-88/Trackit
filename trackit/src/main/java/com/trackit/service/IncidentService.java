@@ -16,6 +16,7 @@ import com.trackit.model.Counter;
 import com.trackit.model.Incident;
 import com.trackit.model.Role;
 import com.trackit.model.User;
+import com.trackit.model.WorkItem;
 import com.trackit.model.enums.Impact;
 import com.trackit.model.enums.IncidentStatus;
 import com.trackit.model.enums.Priority;
@@ -23,6 +24,7 @@ import com.trackit.model.enums.SlaStatus;
 import com.trackit.model.enums.Urgency;
 import com.trackit.repository.IncidentRepository;
 import com.trackit.repository.UserRepository;
+import com.trackit.repository.WorkItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
@@ -64,6 +66,7 @@ public class IncidentService {
     private final UserRepository userRepository;
     private final MongoTemplate mongoTemplate;
     private final PriorityService priorityService;
+    private final WorkItemRepository workItemRepository;
 
     public IncidentResponse createIncident(CreateIncidentRequest req, String createdByUserId) {
         Instant now = Instant.now();
@@ -272,7 +275,11 @@ public class IncidentService {
     }
 
     private IncidentResponse toResponse(Incident incident) {
-        Map<String, String> names = resolveUserNames(Stream.of(incident.getCreatedBy(), incident.getAssignedTo()));
+        WorkItem work = incident.getId() == null
+                ? null
+                : workItemRepository.findFirstByIncidentIdOrderByCreatedAtDesc(incident.getId()).orElse(null);
+        Map<String, String> names = resolveUserNames(Stream.of(
+                incident.getCreatedBy(), incident.getAssignedTo(), work == null ? null : work.getAssignedTo()));
         Function<String, String> nameOf = id -> id == null ? null : names.get(id);
         Priority priority = effectivePriority(incident);
         return new IncidentResponse(
@@ -294,7 +301,9 @@ public class IncidentService {
                 nameOf.apply(incident.getAssignedTo()),
                 incident.getCreatedAt(),
                 incident.getUpdatedAt(),
-                incident.getDueAt());
+                incident.getDueAt(),
+                work == null ? null : nameOf.apply(work.getAssignedTo()),
+                work == null ? null : work.getStatus());
     }
 
     private IncidentSummaryResponse toSummary(Incident incident, Map<String, String> assigneeNames) {

@@ -3,6 +3,9 @@ package com.trackit.config;
 import com.trackit.model.AccountRequest;
 import com.trackit.model.Department;
 import com.trackit.model.Incident;
+import com.trackit.model.Project;
+import com.trackit.model.User;
+import com.trackit.model.WorkItem;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Configuration;
@@ -43,5 +46,17 @@ public class MongoConfig {
         IndexOperations departments = mongoTemplate.indexOps(Department.class);
         departments.ensureIndex(new Index().on("nameKey", Sort.Direction.ASC).unique());
         departments.ensureIndex(new Index().on("name", Sort.Direction.ASC));
+
+        IndexOperations projects = mongoTemplate.indexOps(Project.class);
+        projects.ensureIndex(new Index().on("departmentId", Sort.Direction.ASC).on("nameKey", Sort.Direction.ASC)
+                .unique());
+
+        mongoTemplate.indexOps(User.class).ensureIndex(new Index().on("departmentId", Sort.Direction.ASC));
+
+        IndexOperations workItems = mongoTemplate.indexOps(WorkItem.class);
+        workItems.ensureIndex(new Index().on("departmentId", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC));
+        workItems.ensureIndex(new Index().on("assignedTo", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC));
+        workItems.ensureIndex(new Index().on("incidentId", Sort.Direction.ASC));
+        workItems.ensureIndex(new Index().on("projectId", Sort.Direction.ASC));
     }
 }

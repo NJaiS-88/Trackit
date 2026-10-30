@@ -40,6 +40,9 @@ public class User {
     /** Id of the user's {@link Department}; null until an admin assigns one. */
     private String departmentId;
 
+    /** Id of the {@link Project} the department's Lead assigned; only employees have one. */
+    private String projectId;
+
     @Builder.Default
     private boolean active = true;
 
