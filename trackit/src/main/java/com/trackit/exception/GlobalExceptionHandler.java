@@ -121,6 +121,12 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
     }
 
+    @ExceptionHandler(DepartmentAlreadyExistsException.class)
+    public ResponseEntity<ApiErrorResponse> handleDepartmentExists(DepartmentAlreadyExistsException ex,
+                                                                   HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
+    }
+
     @ExceptionHandler(AccountRequestPendingException.class)
     public ResponseEntity<ApiErrorResponse> handleRequestPending(AccountRequestPendingException ex,
                                                                  HttpServletRequest request) {

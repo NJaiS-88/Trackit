@@ -1,5 +1,6 @@
 package com.trackit.controller;
 
+import com.trackit.dto.UpdateDepartmentRequest;
 import com.trackit.dto.UpdateRoleRequest;
 import com.trackit.dto.UserResponse;
 import com.trackit.service.UserService;
@@ -49,6 +50,13 @@ public class UserController {
     @Operation(summary = "Change a user's role")
     public UserResponse updateRole(@PathVariable String id, @Valid @RequestBody UpdateRoleRequest request) {
         return userService.updateRole(id, request.role());
+    }
+
+    @PatchMapping("/{id}/department")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Set a user's department (send null to clear it); admins cannot have one")
+    public UserResponse updateDepartment(@PathVariable String id, @RequestBody UpdateDepartmentRequest request) {
+        return userService.updateDepartment(id, request.departmentId());
     }
 
     @PatchMapping("/{id}/status")

@@ -4,6 +4,7 @@ import AccountRequests from './pages/AccountRequests'
 import AdminUsers from './pages/AdminUsers'
 import CreateIncident from './pages/CreateIncident'
 import Dashboard from './pages/Dashboard'
+import Departments from './pages/Departments'
 import IncidentDetail from './pages/IncidentDetail'
 import Incidents from './pages/Incidents'
 import Login from './pages/Login'
@@ -53,6 +54,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={['ADMIN']}>
               <AccountRequests />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/departments"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <Departments />
             </ProtectedRoute>
           }
         />

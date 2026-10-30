@@ -1,7 +1,7 @@
 import axiosInstance from './axiosInstance'
 
 /**
- * @typedef {{id: string, name: string, email: string, role: 'EMPLOYEE' | 'ENGINEER' | 'ADMIN', expertise: string[], active: boolean, createdAt: string}} User
+ * @typedef {{id: string, name: string, email: string, role: 'EMPLOYEE' | 'ENGINEER' | 'ADMIN', departmentId: string | null, active: boolean, createdAt: string}} User
  * @typedef {{content: User[], page: {size: number, number: number, totalElements: number, totalPages: number}}} UserPage
  */
 
@@ -14,6 +14,14 @@ export async function getUsers({ page = 0, size = 20, sort = 'createdAt,desc' } 
 /** @returns {Promise<User>} */
 export async function updateUserRole(id, role) {
   const { data } = await axiosInstance.patch(`/api/admin/users/${encodeURIComponent(id)}/role`, { role })
+  return data
+}
+
+/** Pass null to remove the user from their department. @returns {Promise<User>} */
+export async function updateUserDepartment(id, departmentId) {
+  const { data } = await axiosInstance.patch(`/api/admin/users/${encodeURIComponent(id)}/department`, {
+    departmentId,
+  })
   return data
 }
 

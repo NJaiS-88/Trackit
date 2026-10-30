@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/incidents/new', label: 'New Incident', icon: '＋', roles: ['EMPLOYEE'] },
   { to: '/admin/users', label: 'Admin Users', icon: '◎', roles: ['ADMIN'] },
   { to: '/admin/requests', label: 'Account Requests', icon: '✉', roles: ['ADMIN'] },
+  { to: '/admin/departments', label: 'Departments', icon: '▤', roles: ['ADMIN'] },
 ]
 
 export default function Sidebar({ open, onNavigate }) {

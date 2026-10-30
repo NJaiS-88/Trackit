@@ -38,6 +38,17 @@ export function validateRegister({ name, email, password, confirmPassword }) {
   return errors
 }
 
+export function validateDepartment({ name, description }) {
+  const errors = {}
+  const trimmedName = name.trim()
+  if (!trimmedName) errors.name = 'Name is required'
+  else if (trimmedName.length < 2 || trimmedName.length > 80) {
+    errors.name = 'Name must be between 2 and 80 characters'
+  }
+  if (description.trim().length > 300) errors.description = 'Description must be at most 300 characters'
+  return errors
+}
+
 export function validateIncident({ title, description, category, affectedService, impact, urgency }) {
   const errors = {}
   const trimmedTitle = title.trim()

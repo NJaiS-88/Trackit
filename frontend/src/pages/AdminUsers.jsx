@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { parseApiError } from '../api/axiosInstance'
-import { getUsers, toggleUserStatus, updateUserRole } from '../api/userApi'
+import { getAllDepartments } from '../api/departmentApi'
+import { getUsers, toggleUserStatus, updateUserDepartment, updateUserRole } from '../api/userApi'
 import Pagination from '../components/Pagination'
 import Spinner from '../components/Spinner'
 import { ROLE_LABELS, ROLES } from '../constants/roles'
@@ -19,6 +20,7 @@ export default function AdminUsers() {
   const [result, setResult] = useState({ key: null, data: null, error: null })
   const [actionError, setActionError] = useState(null)
   const [pendingIds, setPendingIds] = useState(() => new Set())
+  const [departments, setDepartments] = useState({ key: null, list: [], error: null })
   const requestKey = `${page}:${reloadCount}`
 
   useEffect(() => {
@@ -34,6 +36,23 @@ export default function AdminUsers() {
       ignore = true
     }
   }, [requestKey, page])
+
+  useEffect(() => {
+    let ignore = false
+    getAllDepartments()
+      .then((list) => {
+        if (!ignore) setDepartments({ key: reloadCount, list, error: null })
+      })
+      .catch((err) => {
+        if (!ignore) setDepartments({ key: reloadCount, list: [], error: parseApiError(err).message })
+      })
+    return () => {
+      ignore = true
+    }
+  }, [reloadCount])
+
+  const departmentsLoading = departments.key !== reloadCount
+  const departmentIds = new Set(departments.list.map((d) => d.id))
 
   const loading = result.key !== requestKey
   const data = result.data
@@ -71,6 +90,12 @@ export default function AdminUsers() {
     runAction(target.id, () => updateUserRole(target.id, role))
   }
 
+  const handleDepartmentChange = (target, departmentId) => {
+    const next = departmentId || null
+    if (next === (target.departmentId ?? null)) return
+    runAction(target.id, () => updateUserDepartment(target.id, next))
+  }
+
   const handleToggleStatus = (target) => {
     if (target.active) {
       const confirmed = window.confirm(`Deactivate ${target.name}? They will be signed out and unable to log in.`)
@@ -104,6 +129,11 @@ export default function AdminUsers() {
           {actionError}
         </div>
       )}
+      {departments.error && (
+        <div className="alert alert-error" role="alert">
+          Could not load departments: {departments.error}
+        </div>
+      )}
 
       {loadError ? (
         <div className="alert alert-error" role="alert">
@@ -117,7 +147,7 @@ export default function AdminUsers() {
                 <th>Name</th>
                 <th>Email</th>
                 <th>Role</th>
-                <th>Expertise</th>
+                <th>Department</th>
                 <th>Status</th>
                 <th>Joined</th>
                 <th aria-label="Actions" />
@@ -165,16 +195,28 @@ export default function AdminUsers() {
                       </select>
                     </td>
                     <td>
-                      {u.expertise.length > 0 ? (
-                        <div className="chips">
-                          {u.expertise.map((item) => (
-                            <span key={item} className="chip">
-                              {item}
-                            </span>
-                          ))}
-                        </div>
+                      {u.role === 'ADMIN' ? (
+                        <span className="text-muted" title="Admins don't belong to a department">
+                          None
+                        </span>
                       ) : (
-                        <span className="text-muted">—</span>
+                        <select
+                          className="control control-sm"
+                          value={u.departmentId ?? ''}
+                          onChange={(event) => handleDepartmentChange(u, event.target.value)}
+                          disabled={pending || departmentsLoading || Boolean(departments.error)}
+                          aria-label={`Department for ${u.name}`}
+                        >
+                          <option value="">No department</option>
+                          {u.departmentId && !departmentsLoading && !departmentIds.has(u.departmentId) && (
+                            <option value={u.departmentId}>Unknown department</option>
+                          )}
+                          {departments.list.map((d) => (
+                            <option key={d.id} value={d.id}>
+                              {d.name}
+                            </option>
+                          ))}
+                        </select>
                       )}
                     </td>
                     <td>

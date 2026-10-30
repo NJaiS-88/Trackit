@@ -1,6 +1,7 @@
 package com.trackit.config;
 
 import com.trackit.model.AccountRequest;
+import com.trackit.model.Department;
 import com.trackit.model.Incident;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -38,5 +39,9 @@ public class MongoConfig {
                 .partial(PartialIndexFilter.of(Criteria.where("status").is("PENDING"))));
         accountRequests.ensureIndex(new Index().on("email", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC));
         accountRequests.ensureIndex(new Index().on("status", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC));
+
+        IndexOperations departments = mongoTemplate.indexOps(Department.class);
+        departments.ensureIndex(new Index().on("nameKey", Sort.Direction.ASC).unique());
+        departments.ensureIndex(new Index().on("name", Sort.Direction.ASC));
     }
 }

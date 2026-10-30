@@ -37,6 +37,9 @@ public class User {
     @Builder.Default
     private List<String> expertise = new ArrayList<>();
 
+    /** Id of the user's {@link Department}; null until an admin assigns one. */
+    private String departmentId;
+
     @Builder.Default
     private boolean active = true;
 
