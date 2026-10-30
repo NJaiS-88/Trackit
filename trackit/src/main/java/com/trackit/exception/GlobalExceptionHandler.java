@@ -1,8 +1,12 @@
 package com.trackit.exception;
 
 import com.trackit.dto.ApiErrorResponse;
+import com.trackit.security.AuthCookies;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
@@ -25,7 +29,13 @@ import java.util.Map;
 
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+    public static final String SESSION_EXPIRED = "SESSION_EXPIRED";
+    public static final String CONCURRENT_REFRESH = "CONCURRENT_REFRESH";
+
+    private final AuthCookies authCookies;
 
     /** Covers {@code MethodArgumentNotValidException} (request bodies) and query-string binding failures. */
     @ExceptionHandler(BindException.class)
@@ -133,6 +143,32 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
     }
 
+    @ExceptionHandler(TooManyLoginAttemptsException.class)
+    public ResponseEntity<ApiErrorResponse> handleTooManyLogins(TooManyLoginAttemptsException ex,
+                                                                HttpServletRequest request) {
+        HttpStatus status = HttpStatus.TOO_MANY_REQUESTS;
+        return ResponseEntity.status(status)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(ex.getRetryAfterSeconds()))
+                .body(ApiErrorResponse.of(status.value(), status.getReasonPhrase(), ex.getMessage(),
+                        request.getRequestURI()));
+    }
+
+    /** Also clears the auth cookies so the browser stops presenting a dead refresh token. */
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidRefreshToken(InvalidRefreshTokenException ex,
+                                                                      HttpServletRequest request,
+                                                                      HttpServletResponse response) {
+        authCookies.clearAuthTokens(response);
+        return buildWithCode(HttpStatus.UNAUTHORIZED, ex.getMessage(), request, SESSION_EXPIRED);
+    }
+
+    /** Leaves the cookies alone: the concurrent request that won has just set fresh ones. */
+    @ExceptionHandler(ConcurrentRefreshException.class)
+    public ResponseEntity<ApiErrorResponse> handleConcurrentRefresh(ConcurrentRefreshException ex,
+                                                                    HttpServletRequest request) {
+        return buildWithCode(HttpStatus.CONFLICT, ex.getMessage(), request, CONCURRENT_REFRESH);
+    }
+
     @ExceptionHandler(AccountNotApprovedException.class)
     public ResponseEntity<ApiErrorResponse> handleNotApproved(AccountNotApprovedException ex,
                                                               HttpServletRequest request) {
@@ -156,6 +192,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleUnexpected(Exception ex, HttpServletRequest request) {
         log.error("Unhandled exception on {} {}", request.getMethod(), request.getRequestURI(), ex);
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", request, null);
+    }
+
+    private static ResponseEntity<ApiErrorResponse> buildWithCode(HttpStatus status, String message,
+                                                                  HttpServletRequest request, String code) {
+        return ResponseEntity.status(status).body(ApiErrorResponse.withCode(
+                status.value(), status.getReasonPhrase(), message, request.getRequestURI(), code));
     }
 
     private static ResponseEntity<ApiErrorResponse> build(HttpStatus status, String message,

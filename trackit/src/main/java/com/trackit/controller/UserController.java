@@ -1,5 +1,6 @@
 package com.trackit.controller;
 
+import com.trackit.config.OpenApiConfig;
 import com.trackit.dto.UpdateDepartmentRequest;
 import com.trackit.dto.UpdateRoleRequest;
 import com.trackit.dto.UserResponse;
@@ -25,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/admin/users")
 @RequiredArgsConstructor
 @Tag(name = "User management", description = "Admin-only user administration")
-@SecurityRequirement(name = "bearerAuth")
+@SecurityRequirement(name = OpenApiConfig.CSRF_SCHEME)
 public class UserController {
 
     private final UserService userService;

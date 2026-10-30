@@ -34,8 +34,8 @@ export default function Login() {
 
     setSubmitting(true)
     try {
-      const response = await authApi.login({ email: form.email.trim(), password: form.password })
-      login(response)
+      const user = await authApi.login({ email: form.email.trim(), password: form.password })
+      login(user)
       navigate(location.state?.from?.pathname ?? '/dashboard', { replace: true })
     } catch (error) {
       const { message, fieldErrors } = parseApiError(error)

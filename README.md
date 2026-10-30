@@ -9,7 +9,7 @@ IT Incident Management System — a Spring Boot REST API with a React frontend.
 
 ## Features
 
-- **Authentication** — login with email and password, BCrypt-hashed passwords, stateless JWT (HS256) auth.
+- **Authentication** — login with email and password (BCrypt), cookie-based sessions with short-lived access tokens and rotating refresh tokens in Redis. See [Security](#security).
 - **Account requests** — nobody can create an account directly. Sign-up files a request; an admin approves it (creating an `EMPLOYEE`) or rejects it. Until then, logging in explains that the request is pending or rejected.
 - **Roles** — `EMPLOYEE`, `ENGINEER`, `ADMIN`. Approved requests become `EMPLOYEE`; an admin assigns other roles from the user list.
 - **User management (admin)** — paginated user list, change roles, activate / deactivate accounts. The last active admin cannot be demoted or deactivated.
@@ -20,6 +20,7 @@ IT Incident Management System — a Spring Boot REST API with a React frontend.
 - Java 21+
 - Node.js 20.19+
 - A MongoDB instance (e.g. a free MongoDB Atlas cluster)
+- A Redis instance (e.g. a free Upstash Redis database)
 
 ## Running locally
 
@@ -27,7 +28,7 @@ IT Incident Management System — a Spring Boot REST API with a React frontend.
 
 ```bash
 cd trackit
-cp .env.example .env   # then fill in MONGO_URI and JWT_SECRET
+cp .env.example .env   # then fill in MONGO_URI, JWT_SECRET and REDIS_URL
 ./mvnw spring-boot:run # Windows: .\mvnw.cmd spring-boot:run
 ```
 
@@ -37,8 +38,12 @@ The API starts on <http://localhost:8081>. Swagger UI: <http://localhost:8081/sw
 |---|---|---|---|
 | `MONGO_URI` | yes | — | MongoDB connection string |
 | `JWT_SECRET` | yes | — | Base64 key, at least 256 bits (`openssl rand -base64 32`) |
-| `CORS_ALLOWED_ORIGINS` | no | `http://localhost:5173` | Comma-separated frontend origins |
-| `JWT_EXPIRATION` | no | `86400000` | Token lifetime in milliseconds (24h) |
+| `REDIS_URL` | yes | `redis://localhost:6379` | Redis connection string; for Upstash the TLS `rediss://default:<password>@<host>.upstash.io:6379` URL |
+| `CORS_ALLOWED_ORIGINS` | no | `http://localhost:5173` | Comma-separated exact frontend origins allowed to send cookies (`*` is rejected) |
+| `COOKIE_SECURE` | no | `true` | `false` only for plain-http local development (SameSite=Lax, no Secure flag) |
+| `ACCESS_TOKEN_TTL` | no | `10m` | Access-token lifetime |
+| `REFRESH_TOKEN_TTL` | no | `7d` | Refresh-token lifetime; each refresh starts a new period (sliding) |
+| `REDIS_KEY_PREFIX` | no | `trackit:` | Prefix for every Redis key, so environments can share a database |
 | `MONGO_DATABASE` | no | `trackit` | Database name |
 | `PORT` | no | `8081` | HTTP port |
 | `API_DOCS_ENABLED` | no | `true` | Serve Swagger UI and `/v3/api-docs` |
@@ -62,9 +67,37 @@ Account requests need an admin to approve them, so the first admin comes from co
 
 Admins review sign-ups under **Account Requests** in the sidebar, and change roles (e.g. to Engineer) under **Admin Users**.
 
+## Security
+
+**Tokens never reach JavaScript.** Login sets two HttpOnly cookies on the API's domain; the frontend keeps only the user's name and role in memory.
+
+| Cookie | Contents | Lifetime | Sent to |
+|---|---|---|---|
+| `__Host-trackit_at` | Access token: HS256 JWT with user id, role, `iss`, `aud`, `jti` | 10 minutes | Every API request |
+| `__Secure-trackit_rt` | Refresh token: 256-bit random value | 7 days, renewed on each refresh | `/api/auth/*` only |
+| `__Host-trackit_csrf` | CSRF token | Browser session | Every API request |
+
+In production all three are `HttpOnly; Secure; SameSite=None; Partitioned`. `SameSite=None` is required because the frontend (`*.vercel.app`) and API (`*.onrender.com`) are different sites; `Partitioned` keeps the cookies working in browsers that block third-party cookies but support CHIPS (Chrome, Edge, Firefox). Safari blocks third-party cookies outright, so sign-in only works there if the frontend and API share a domain (e.g. `app.example.com` and `api.example.com`).
+
+**Access tokens** are verified without a database lookup. Deactivating a user revokes all their refresh tokens immediately; their current access token stops working within 10 minutes.
+
+**Refresh tokens** live in Redis as SHA-256 hashes (a Redis leak exposes no usable tokens). Every refresh rotates the token atomically (Lua script). Each login starts a token *family*; presenting an already-rotated token means it was copied, so the whole family is revoked. A 20-second grace window covers two tabs refreshing at the same moment. The frontend also serializes refreshes across tabs with the Web Locks API.
+
+**CSRF** is blocked by four independent layers:
+1. **Double-submit token** — every `POST`/`PUT`/`PATCH`/`DELETE` (login included) must send `X-XSRF-TOKEN` matching the CSRF cookie. The SPA gets it from `GET /api/auth/csrf`; tokens are XOR-masked per response (BREACH-safe) and rotated on login and logout.
+2. **Credentialed CORS allowlist** — only origins in `CORS_ALLOWED_ORIGINS` can send the custom header or read any response (so no other site can read the CSRF token). A wildcard is refused at startup.
+3. **Origin check** — state-changing requests whose `Origin` is not allowed are rejected before the CSRF check.
+4. **No state changes on `GET`.**
+
+**Also:** login rate limiting (5 failures per email per 15 minutes, in Redis), logout revokes the session family and clears all cookies, Spring Security headers (HSTS, `X-Frame-Options: DENY`, nosniff, `Referrer-Policy: no-referrer`, no-store caching), and a strict Content-Security-Policy on the frontend ([`frontend/vercel.json`](frontend/vercel.json)).
+
 ## Deployment
 
-The backend runs on **Render** (Docker) and the frontend on **Vercel**. Deploy the backend first so you have its URL for the frontend.
+The backend runs on **Render** (Docker), the frontend on **Vercel**, and refresh tokens in **Upstash Redis**. Deploy the backend first so you have its URL for the frontend.
+
+### 0. Upstash Redis
+
+Create a Redis database at [upstash.com](https://upstash.com) in the region closest to your Render region. On its page, under **Connect**, copy the **Redis URL** that starts with `rediss://` (TLS). The REST URL and token are not used.
 
 ### 1. MongoDB Atlas
 
@@ -75,10 +108,13 @@ Render's outbound IPs are not fixed, so in Atlas → **Network Access** allow `0
 1. In Render choose **New → Blueprint** and select this repository. [`render.yaml`](render.yaml) creates the `trackit-api` web service from [`trackit/Dockerfile`](trackit/Dockerfile).
 2. When prompted, set:
    - `MONGO_URI` — your Atlas connection string
+   - `REDIS_URL` — your Upstash `rediss://` URL
    - `CORS_ALLOWED_ORIGINS` — your Vercel URL, e.g. `https://trackit.vercel.app` (you can update this after step 3)
    - `ADMIN_EMAIL` / `ADMIN_PASSWORD` — the first admin account (see [First admin](#first-admin))
    - `JWT_SECRET` is generated automatically.
-3. Wait for the deploy; Render checks `GET /actuator/health`. Note the service URL, e.g. `https://trackit-api.onrender.com`.
+3. Wait for the deploy; Render checks `GET /actuator/health`, which also reports DOWN if MongoDB or Redis is unreachable. Note the service URL, e.g. `https://trackit-api.onrender.com`.
+
+Swagger UI is off in production (`API_DOCS_ENABLED=false`). If you enable it: log in through `POST /api/auth/login`, call `GET /api/auth/csrf`, and paste the token into **Authorize** to make write requests.
 
 On the free plan the service sleeps after inactivity; the first request afterwards takes up to a minute.
 
@@ -95,8 +131,12 @@ On the free plan the service sleeps after inactivity; the first request afterwar
 
 | Method | Path | Access |
 |---|---|---|
+| `GET` | `/api/auth/csrf` | Public — CSRF token for the `X-XSRF-TOKEN` header |
 | `POST` | `/api/auth/register` | Public — files an account request (`202`) |
-| `POST` | `/api/auth/login` | Public |
+| `POST` | `/api/auth/login` | Public — sets the session cookies, returns the user |
+| `POST` | `/api/auth/refresh` | Refresh cookie — rotates it and issues a new access token |
+| `POST` | `/api/auth/logout` | Public — revokes the session and clears cookies (`204`) |
+| `GET` | `/api/auth/me` | Authenticated |
 | `GET` | `/api/admin/account-requests?status=PENDING&page=0&size=20` | Admin |
 | `POST` | `/api/admin/account-requests/{id}/approve` | Admin |
 | `POST` | `/api/admin/account-requests/{id}/reject` | Admin |
@@ -111,4 +151,4 @@ On the free plan the service sleeps after inactivity; the first request afterwar
 | `DELETE` | `/api/incidents/{id}` | Admin (soft delete) |
 | `GET` | `/actuator/health` | Public |
 
-Errors use a consistent shape: `{ timestamp, status, error, message, path, fieldErrors? }`.
+Errors use a consistent shape: `{ timestamp, status, error, message, path, fieldErrors?, code? }`. `code` is set where the client must react: `CSRF_TOKEN_INVALID`, `ORIGIN_NOT_ALLOWED`, `SESSION_EXPIRED`, `CONCURRENT_REFRESH`.

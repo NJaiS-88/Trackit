@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Locale;
 
+/** Used only to check credentials at login; later requests are authorized from the access token. */
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
@@ -18,12 +19,6 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserPrincipal loadUserByUsername(String email) throws UsernameNotFoundException {
         String normalizedEmail = email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
         return userRepository.findByEmail(normalizedEmail)
-                .map(UserPrincipal::from)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-    }
-
-    public UserPrincipal loadUserById(String id) throws UsernameNotFoundException {
-        return userRepository.findById(id)
                 .map(UserPrincipal::from)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }

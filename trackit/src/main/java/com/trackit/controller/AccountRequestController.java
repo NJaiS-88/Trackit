@@ -1,9 +1,9 @@
 package com.trackit.controller;
 
+import com.trackit.config.OpenApiConfig;
 import com.trackit.dto.AccountRequestResponse;
-import com.trackit.exception.UnauthorizedException;
 import com.trackit.model.enums.AccountRequestStatus;
-import com.trackit.security.UserPrincipal;
+import com.trackit.security.CurrentUser;
 import com.trackit.service.AccountRequestService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -14,8 +14,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/admin/account-requests")
 @RequiredArgsConstructor
 @Tag(name = "Account requests", description = "Admin review of sign-up requests")
-@SecurityRequirement(name = "bearerAuth")
+@SecurityRequirement(name = OpenApiConfig.CSRF_SCHEME)
 public class AccountRequestController {
 
     private final AccountRequestService accountRequestService;
@@ -56,10 +54,6 @@ public class AccountRequestController {
     }
 
     private String getCurrentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
-            throw new UnauthorizedException("Access denied");
-        }
-        return principal.getId();
+        return CurrentUser.get().id();
     }
 }

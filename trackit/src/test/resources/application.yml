@@ -8,4 +8,3 @@ security:
   jwt:
     # Test-only key (>= 256 bits, Base64)
     secret: dGVzdC1vbmx5LXNlY3JldC1rZXktZm9yLXRyYWNraXQtMzI=
-    expiration: 3600000

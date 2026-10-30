@@ -2,13 +2,18 @@ spring:
   application:
     name: trackit
   config:
-    # Loads MONGO_URI / JWT_SECRET / JWT_EXPIRATION from a local .env (run from the backend folder)
+    # Loads MONGO_URI / JWT_SECRET / REDIS_URL etc. from a local .env (run from the backend folder)
     import: optional:file:.env[.properties]
   data:
     mongodb:
       uri: ${MONGO_URI:mongodb+srv://placeholder}
       database: ${MONGO_DATABASE:trackit}
       auto-index-creation: true
+    redis:
+      # Upstash: the TLS connection string from the console, e.g. rediss://default:<password>@<host>.upstash.io:6379
+      url: ${REDIS_URL:redis://localhost:6379}
+      timeout: 5s
+      connect-timeout: 5s
     web:
       pageable:
         max-page-size: 100
@@ -23,10 +28,18 @@ security:
   jwt:
     # Base64-encoded key of at least 256 bits, e.g. `openssl rand -base64 32`. No default on purpose.
     secret: ${JWT_SECRET}
-    # Token lifetime in milliseconds (default 24h)
-    expiration: ${JWT_EXPIRATION:86400000}
+    access-token-ttl: ${ACCESS_TOKEN_TTL:10m}
+  refresh-token:
+    # Sliding: every refresh issues a new token valid for this long
+    ttl: ${REFRESH_TOKEN_TTL:7d}
+    # Lets several environments share one Redis database
+    key-prefix: ${REDIS_KEY_PREFIX:trackit:}
+  cookies:
+    # true (production): Secure; SameSite=None; Partitioned, needed because the frontend and API are on different sites.
+    # false: plain-http local development only (SameSite=Lax, no Secure flag).
+    secure: ${COOKIE_SECURE:true}
   cors:
-    # Comma-separated origins (patterns allowed), e.g. https://trackit.vercel.app,http://localhost:5173
+    # Comma-separated exact origins, e.g. https://trackit.vercel.app,http://localhost:5173 ("*" is rejected)
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
 
 trackit:

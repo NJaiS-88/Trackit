@@ -1,50 +1,85 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { onUnauthorized } from '../api/axiosInstance'
-import { clearStoredSession, createSession, getStoredSession, storeSession } from '../utils/session'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import * as authApi from '../api/authApi'
+import { onSessionEnded, resetCsrfToken } from '../api/axiosInstance'
 import { AuthContext } from './auth-context'
 
-const MAX_TIMEOUT_MS = 2_147_483_647
+const CHANNEL_NAME = 'trackit-auth'
 
+/**
+ * The session itself lives in HttpOnly cookies; this only tracks who is signed in.
+ * `status` is 'loading' until the first /api/auth/me answers.
+ */
 export function AuthProvider({ children }) {
-  const [session, setSession] = useState(() => getStoredSession())
+  const [state, setState] = useState({ status: 'loading', user: null })
+  const channelRef = useRef(null)
 
-  /** Stores the AuthResponse returned by authApi.login. */
-  const login = useCallback((authResponse) => {
-    const next = createSession(authResponse)
-    storeSession(next)
-    setSession(next)
-    return next.user
+  const endSession = useCallback(() => {
+    resetCsrfToken()
+    setState({ status: 'anonymous', user: null })
   }, [])
 
-  const logout = useCallback(() => {
-    clearStoredSession()
-    setSession(null)
-  }, [])
-
-  useEffect(() => onUnauthorized(logout), [logout])
-
-  // Drop the session as soon as the token expires, even if no request is made.
-  // setTimeout fires immediately for delays above 2^31-1 ms, hence the clamp.
   useEffect(() => {
-    if (!session) return undefined
-    const delay = Math.min(Math.max(session.expiresAt - Date.now(), 0), MAX_TIMEOUT_MS)
-    const timeout = setTimeout(() => {
-      if (Date.now() >= session.expiresAt) logout()
-      else setSession({ ...session })
-    }, delay)
-    return () => clearTimeout(timeout)
-  }, [session, logout])
+    let ignore = false
+    authApi
+      .getCurrentUser()
+      .then((user) => {
+        if (!ignore) setState({ status: 'authenticated', user })
+      })
+      .catch(() => {
+        if (!ignore) setState({ status: 'anonymous', user: null })
+      })
+    return () => {
+      ignore = true
+    }
+  }, [])
+
+  useEffect(() => onSessionEnded(endSession), [endSession])
+
+  // Keep other tabs in step: the cookies are shared, so their UI should be too
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return undefined
+    const channel = new BroadcastChannel(CHANNEL_NAME)
+    channelRef.current = channel
+    channel.onmessage = ({ data }) => {
+      if (data?.type === 'logout') endSession()
+      if (data?.type === 'login') {
+        resetCsrfToken()
+        setState({ status: 'authenticated', user: data.user })
+      }
+    }
+    return () => {
+      channel.close()
+      channelRef.current = null
+    }
+  }, [endSession])
+
+  /** Records the user returned by authApi.login (the cookies are already set). */
+  const login = useCallback((user) => {
+    resetCsrfToken()
+    setState({ status: 'authenticated', user })
+    channelRef.current?.postMessage({ type: 'login', user })
+  }, [])
+
+  const logout = useCallback(async () => {
+    try {
+      await authApi.logout()
+    } catch {
+      // Clear local state regardless; the refresh token expires on its own
+    }
+    endSession()
+    channelRef.current?.postMessage({ type: 'logout' })
+  }, [endSession])
 
   const value = useMemo(
     () => ({
-      token: session?.token ?? null,
-      user: session?.user ?? null,
-      role: session?.user?.role ?? null,
-      isAuthenticated: Boolean(session),
+      user: state.user,
+      role: state.user?.role ?? null,
+      isLoading: state.status === 'loading',
+      isAuthenticated: state.status === 'authenticated',
       login,
       logout,
     }),
-    [session, login, logout],
+    [state, login, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

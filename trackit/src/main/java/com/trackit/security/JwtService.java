@@ -1,73 +1,80 @@
 package com.trackit.security;
 
+import com.trackit.model.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
+import java.util.UUID;
 
 /**
- * Issues and verifies HS256-signed JWTs. The subject is the user id; the role and email are
- * embedded as claims so clients can read them without an extra round trip.
+ * Issues and verifies short-lived HS256 access tokens. They carry the user id and role, so requests are
+ * authorized without a database lookup; deactivation takes effect when the token expires and the refresh
+ * is refused.
  */
 @Service
 public class JwtService {
 
-    public static final String ROLE_CLAIM = "role";
-    public static final String EMAIL_CLAIM = "email";
+    private static final String ROLE_CLAIM = "role";
+    private static final String TOKEN_USE_CLAIM = "token_use";
+    private static final String ACCESS_TOKEN_USE = "access";
+    private static final long CLOCK_SKEW_SECONDS = 30;
 
     private final SecretKey signingKey;
-    private final long expirationMillis;
+    private final JwtProperties properties;
+    private final JwtParser parser;
 
     public JwtService(JwtProperties properties) {
         // Keys.hmacShaKeyFor rejects keys shorter than 256 bits
         this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(properties.secret()));
-        this.expirationMillis = properties.expiration();
+        this.properties = properties;
+        this.parser = Jwts.parser()
+                .verifyWith(signingKey)
+                .requireIssuer(properties.issuer())
+                .requireAudience(properties.audience())
+                .require(TOKEN_USE_CLAIM, ACCESS_TOKEN_USE)
+                .clockSkewSeconds(CLOCK_SKEW_SECONDS)
+                .build();
     }
 
-    public String generateToken(UserPrincipal principal) {
-        Date issuedAt = new Date();
-        Date expiresAt = new Date(issuedAt.getTime() + expirationMillis);
-
+    public String generateAccessToken(String userId, Role role) {
+        Instant now = Instant.now();
         return Jwts.builder()
-                .subject(principal.getId())
-                .claim(ROLE_CLAIM, principal.getRole().name())
-                .claim(EMAIL_CLAIM, principal.getEmail())
-                .issuedAt(issuedAt)
-                .expiration(expiresAt)
+                .id(UUID.randomUUID().toString())
+                .issuer(properties.issuer())
+                .audience().add(properties.audience()).and()
+                .subject(userId)
+                .claim(ROLE_CLAIM, role.name())
+                .claim(TOKEN_USE_CLAIM, ACCESS_TOKEN_USE)
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plus(properties.accessTokenTtl())))
                 .signWith(signingKey, Jwts.SIG.HS256)
                 .compact();
     }
 
     /**
-     * @throws JwtException if the token is malformed, tampered with, or expired
+     * @throws JwtException             if the token is malformed, tampered with, expired, or not an access token
+     * @throws IllegalArgumentException if the subject or role claim is missing or unknown
      */
-    public String extractUserId(String token) {
-        return parseClaims(token).getSubject();
-    }
-
-    public boolean isTokenValid(String token, UserPrincipal principal) {
-        try {
-            Claims claims = parseClaims(token);
-            return principal.getId().equals(claims.getSubject());
-        } catch (JwtException | IllegalArgumentException e) {
-            return false;
+    public AuthenticatedUser parseAccessToken(String token) {
+        Claims claims = parser.parseSignedClaims(token).getPayload();
+        String userId = claims.getSubject();
+        String role = claims.get(ROLE_CLAIM, String.class);
+        if (userId == null || role == null) {
+            throw new IllegalArgumentException("Access token is missing required claims");
         }
+        return new AuthenticatedUser(userId, Role.valueOf(role));
     }
 
-    public long getExpirationSeconds() {
-        return expirationMillis / 1000;
-    }
-
-    private Claims parseClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(signingKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+    public Duration getAccessTokenTtl() {
+        return properties.accessTokenTtl();
     }
 }

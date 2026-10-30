@@ -41,6 +41,12 @@
 			<artifactId>spring-boot-starter-data-mongodb</artifactId>
 		</dependency>
 
+		<!-- Refresh-token store and login rate limiting (Upstash Redis) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis</artifactId>
+		</dependency>
+
 		<!-- Bean validation -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

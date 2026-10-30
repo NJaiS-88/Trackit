@@ -6,6 +6,7 @@ import com.trackit.model.Role;
 import com.trackit.model.User;
 import com.trackit.repository.DepartmentRepository;
 import com.trackit.repository.UserRepository;
+import com.trackit.security.RefreshTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +22,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
+    private final RefreshTokenService refreshTokenService;
 
     public Page<UserResponse> getAllUsers(Pageable pageable) {
         return userRepository.findAll(pageable).map(this::toResponse);
@@ -68,7 +70,12 @@ public class UserService {
             ensureAnotherActiveAdminExists("Cannot deactivate the last active admin");
         }
         user.setActive(!user.isActive());
-        return toResponse(userRepository.save(user));
+        UserResponse response = toResponse(userRepository.save(user));
+        if (!user.isActive()) {
+            // Their access token still works until it expires (at most the access-token TTL), but no refresh will
+            refreshTokenService.revokeAllForUser(userId);
+        }
+        return response;
     }
 
     /** Active engineers whose expertise list contains {@code category} (exact match). */

@@ -1,5 +1,6 @@
 package com.trackit.controller;
 
+import com.trackit.config.OpenApiConfig;
 import com.trackit.dto.CreateIncidentRequest;
 import com.trackit.dto.DashboardSummaryResponse;
 import com.trackit.dto.IncidentFilterRequest;
@@ -8,9 +9,8 @@ import com.trackit.dto.IncidentSummaryResponse;
 import com.trackit.dto.PagedResponse;
 import com.trackit.dto.StatusChangeRequest;
 import com.trackit.dto.UpdateIncidentRequest;
-import com.trackit.exception.UnauthorizedException;
 import com.trackit.security.AuthenticatedUser;
-import com.trackit.security.UserPrincipal;
+import com.trackit.security.CurrentUser;
 import com.trackit.service.IncidentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -22,8 +22,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -40,7 +38,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/incidents")
 @RequiredArgsConstructor
 @Tag(name = "Incidents", description = "Report, browse and manage incidents")
-@SecurityRequirement(name = "bearerAuth")
+@SecurityRequirement(name = OpenApiConfig.CSRF_SCHEME)
 public class IncidentController {
 
     private final IncidentService incidentService;
@@ -103,10 +101,6 @@ public class IncidentController {
     }
 
     private AuthenticatedUser getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
-            throw new UnauthorizedException("Access denied");
-        }
-        return new AuthenticatedUser(principal.getId(), principal.getRole());
+        return CurrentUser.get();
     }
 }

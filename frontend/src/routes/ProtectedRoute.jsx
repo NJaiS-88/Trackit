@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import Spinner from '../components/Spinner'
 import { useAuth } from '../hooks/useAuth'
 
 /**
@@ -6,9 +7,16 @@ import { useAuth } from '../hooks/useAuth'
  * With `allowedRoles`, users of other roles are sent to /dashboard.
  */
 export default function ProtectedRoute({ allowedRoles, children }) {
-  const { isAuthenticated, role } = useAuth()
+  const { isLoading, isAuthenticated, role } = useAuth()
   const location = useLocation()
 
+  if (isLoading) {
+    return (
+      <div className="page-center">
+        <Spinner size={28} label="Restoring your session" />
+      </div>
+    )
+  }
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />
   }
