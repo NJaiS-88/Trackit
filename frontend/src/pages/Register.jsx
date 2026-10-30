@@ -4,11 +4,13 @@ import * as authApi from '../api/authApi'
 import { parseApiError } from '../api/axiosInstance'
 import AuthLayout from '../components/AuthLayout'
 import FloatingField from '../components/FloatingField'
+import FormField from '../components/FormField'
 import Spinner from '../components/Spinner'
+import { SIGNUP_ROLE_LABELS, SIGNUP_ROLES } from '../constants/roles'
 import { useAuth } from '../hooks/useAuth'
-import { parseExpertise, validateRegister } from '../utils/validation'
+import { validateRegister } from '../utils/validation'
 
-const EMPTY_FORM = { name: '', email: '', password: '', confirmPassword: '', expertise: '' }
+const EMPTY_FORM = { name: '', email: '', password: '', confirmPassword: '', role: '' }
 
 export default function Register() {
   const { login } = useAuth()
@@ -39,7 +41,7 @@ export default function Register() {
         name: form.name.trim(),
         email: form.email.trim(),
         password: form.password,
-        expertise: parseExpertise(form.expertise),
+        role: form.role,
       })
       login(response)
       navigate('/dashboard', { replace: true })
@@ -54,7 +56,7 @@ export default function Register() {
   return (
     <AuthLayout
       title="Create your account"
-      subtitle="New accounts start as employees"
+      subtitle="Choose Employee or Admin for this account"
       footer={
         <>
           Already have an account? <Link to="/login">Sign in</Link>
@@ -103,13 +105,14 @@ export default function Register() {
           onChange={handleChange}
           error={errors.confirmPassword}
         />
-        <FloatingField
-          id="expertise"
-          label="Expertise (optional, comma-separated)"
-          value={form.expertise}
-          onChange={handleChange}
-          error={errors.expertise}
-        />
+        <FormField id="role" label="Role" as="select" value={form.role} onChange={handleChange} error={errors.role} required>
+          <option value="">Select a role</option>
+          {SIGNUP_ROLES.map((role) => (
+            <option key={role} value={role}>
+              {SIGNUP_ROLE_LABELS[role]}
+            </option>
+          ))}
+        </FormField>
         <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
           {submitting && <Spinner />}
           {submitting ? 'Creating account…' : 'Create Account'}

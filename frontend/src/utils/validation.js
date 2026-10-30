@@ -18,12 +18,9 @@ export function validateLogin({ email, password }) {
   return errors
 }
 
-/** Splits a comma-separated input into trimmed, non-empty, de-duplicated entries. */
-export function parseExpertise(input) {
-  return [...new Set(input.split(',').map((item) => item.trim()).filter(Boolean))]
-}
+const SIGNUP_ROLES = new Set(['EMPLOYEE', 'ADMIN'])
 
-export function validateRegister({ name, email, password, confirmPassword, expertise }) {
+export function validateRegister({ name, email, password, confirmPassword, role }) {
   const errors = {}
   const trimmedName = name.trim()
   if (!trimmedName) errors.name = 'Name is required'
@@ -41,11 +38,8 @@ export function validateRegister({ name, email, password, confirmPassword, exper
 
   if (confirmPassword !== password) errors.confirmPassword = 'Passwords do not match'
 
-  const expertiseItems = parseExpertise(expertise ?? '')
-  if (expertiseItems.length > 20) errors.expertise = 'At most 20 expertise entries are allowed'
-  else if (expertiseItems.some((item) => item.length > 50)) {
-    errors.expertise = 'Expertise entries must be at most 50 characters'
-  }
+  if (!role) errors.role = 'Role is required'
+  else if (!SIGNUP_ROLES.has(role)) errors.role = 'Role must be Employee or Admin'
   return errors
 }
 

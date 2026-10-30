@@ -1,10 +1,11 @@
 package com.trackit.dto;
 
+import com.trackit.model.Role;
+import com.trackit.validation.RegistrationRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-
-import java.util.List;
 
 public record RegisterRequest(
 
@@ -22,9 +23,8 @@ public record RegisterRequest(
         @Size(min = 8, max = 72, message = "Password must be between 8 and 72 characters")
         String password,
 
-        /** Optional; only meaningful once the user is promoted to ENGINEER. */
-        @Size(max = 20, message = "At most 20 expertise entries are allowed")
-        List<@NotBlank(message = "Expertise entries must not be blank")
-             @Size(max = 50, message = "Expertise entries must be at most 50 characters") String> expertise
+        @NotNull(message = "Role is required")
+        @RegistrationRole
+        Role role
 ) {
 }

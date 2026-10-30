@@ -5,7 +5,6 @@ import com.trackit.dto.LoginRequest;
 import com.trackit.dto.RegisterRequest;
 import com.trackit.dto.UserSummary;
 import com.trackit.exception.EmailAlreadyExistsException;
-import com.trackit.model.Role;
 import com.trackit.model.User;
 import com.trackit.repository.UserRepository;
 import com.trackit.security.JwtService;
@@ -20,8 +19,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Locale;
 
 @Service
@@ -33,9 +30,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
 
-    /**
-     * Self-registration always creates an {@link Role#EMPLOYEE}; elevated roles are granted by an admin.
-     */
+    /** Sign-up creates an EMPLOYEE or ADMIN. Engineers are assigned by an admin. */
     public AuthResponse register(RegisterRequest request) {
         String email = normalizeEmail(request.email());
         if (userRepository.existsByEmail(email)) {
@@ -46,8 +41,8 @@ public class AuthService {
                 .name(request.name().trim())
                 .email(email)
                 .password(passwordEncoder.encode(request.password()))
-                .role(Role.EMPLOYEE)
-                .expertise(normalizeExpertise(request.expertise()))
+                .role(request.role())
+                .expertise(new ArrayList<>())
                 .active(true)
                 .createdAt(Instant.now())
                 .build();
@@ -78,15 +73,5 @@ public class AuthService {
 
     private static String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
-    }
-
-    /** Trims entries and drops duplicates while keeping the caller's order. */
-    private static List<String> normalizeExpertise(List<String> expertise) {
-        if (expertise == null) {
-            return new ArrayList<>();
-        }
-        return new ArrayList<>(expertise.stream()
-                .map(String::trim)
-                .collect(LinkedHashSet::new, LinkedHashSet::add, LinkedHashSet::addAll));
     }
 }

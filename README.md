@@ -10,7 +10,7 @@ IT Incident Management System — a Spring Boot REST API with a React frontend.
 ## Features
 
 - **Authentication** — register / login with email and password, BCrypt-hashed passwords, stateless JWT (HS256) auth.
-- **Roles** — `EMPLOYEE`, `ENGINEER`, `ADMIN`. Self-registration always creates an `EMPLOYEE`.
+- **Roles** — `EMPLOYEE`, `ENGINEER`, `ADMIN`. Sign-up can create an `EMPLOYEE` or `ADMIN`. An admin assigns the `ENGINEER` role.
 - **User management (admin)** — paginated user list, change roles, activate / deactivate accounts. The last active admin cannot be demoted or deactivated.
 - **Incidents** — employees report incidents (auto-numbered `INC-YYYY-000001`), filter and page through them, and view details. Employees see their own incidents, engineers see incidents assigned to them, admins see everything.
 
@@ -54,7 +54,7 @@ Open <http://localhost:5173>. To point the frontend at a different API URL, copy
 
 ### First admin
 
-New accounts are always `EMPLOYEE`. To bootstrap an admin, register a user, then set its `role` to `"ADMIN"` in the `users` collection and sign in again.
+Choose **Admin** in the role dropdown when you register. Engineer accounts are created by an admin from the user list.
 
 ## Deployment
 
