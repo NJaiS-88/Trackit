@@ -2,10 +2,17 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { parseApiError } from '../api/axiosInstance'
 import { createIncident } from '../api/incidentApi'
+import ChoiceGroup from '../components/ChoiceGroup'
 import FormField from '../components/FormField'
 import PriorityBadge from '../components/PriorityBadge'
 import Spinner from '../components/Spinner'
-import { CATEGORIES, CATEGORY_LABELS, LEVEL_LABELS, LEVELS, PRIORITY_LABELS } from '../constants/incident'
+import {
+  CATEGORIES,
+  CATEGORY_LABELS,
+  IMPACT_OPTIONS,
+  PRIORITY_LABELS,
+  URGENCY_OPTIONS,
+} from '../constants/incident'
 import { previewPriority } from '../utils/priorityCalculator'
 import { validateIncident } from '../utils/validation'
 
@@ -39,6 +46,17 @@ export default function CreateIncident() {
     const validationErrors = validateIncident(form)
     setErrors(validationErrors)
     if (Object.keys(validationErrors).length > 0) return
+
+    // P1 is reserved for company-wide outages; make inflating to it a deliberate choice
+    if (
+      expectedPriority === 'P1' &&
+      !window.confirm(
+        'You said several teams or the whole company are affected and people are completely blocked. ' +
+          'This will be logged as Critical (P1), the highest priority. Is that right?',
+      )
+    ) {
+      return
+    }
 
     setSubmitting(true)
     try {
@@ -132,36 +150,30 @@ export default function CreateIncident() {
           error={errors.affectedService}
         />
 
-        <FormField id="impact" label="Impact" as="select" value={form.impact} onChange={handleChange} error={errors.impact}>
-          <option value="">Select impact</option>
-          {LEVELS.map((value) => (
-            <option key={value} value={value}>
-              {LEVEL_LABELS[value]}
-            </option>
-          ))}
-        </FormField>
+        <ChoiceGroup
+          name="impact"
+          legend="Who is affected?"
+          options={IMPACT_OPTIONS}
+          value={form.impact}
+          onChange={handleChange}
+          error={errors.impact}
+        />
 
-        <FormField
-          id="urgency"
-          label="Urgency"
-          as="select"
+        <ChoiceGroup
+          name="urgency"
+          legend="Can you keep working?"
+          options={URGENCY_OPTIONS}
           value={form.urgency}
           onChange={handleChange}
           error={errors.urgency}
-        >
-          <option value="">Select urgency</option>
-          {LEVELS.map((value) => (
-            <option key={value} value={value}>
-              {LEVEL_LABELS[value]}
-            </option>
-          ))}
-        </FormField>
+        />
 
         <div className="span-2 priority-preview">
-          <p className="field-hint">Priority is automatically calculated from your Impact and Urgency selection.</p>
+          <p className="field-hint">Priority is worked out from your two answers above.</p>
           {expectedPriority && (
             <p className="priority-preview-result">
-              Expected priority: <PriorityBadge priority={expectedPriority} label={PRIORITY_LABELS[expectedPriority]} />
+              This will be logged as{' '}
+              <PriorityBadge priority={expectedPriority} label={PRIORITY_LABELS[expectedPriority]} />
             </p>
           )}
         </div>
