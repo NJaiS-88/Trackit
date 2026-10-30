@@ -19,9 +19,9 @@ import {
   countByStatus,
   workSource,
 } from '../constants/work'
-import { formatDate, todayIso } from '../utils/format'
+import { formatDate, isPastDeadline, todayIso } from '../utils/format'
 
-const EMPTY_TASK = { projectId: '', assigneeIds: [], title: '', description: '', dueDate: '' }
+const EMPTY_TASK = { projectId: '', assigneeIds: [], title: '', description: '', dueDate: '', dueTime: '' }
 const REASSIGNABLE = new Set(['ASSIGNED', 'DECLINED'])
 const OPEN_WORK = new Set(['ASSIGNED', 'IN_PROGRESS', 'DECLINED'])
 
@@ -39,6 +39,10 @@ function validateTask(task) {
   else if (title.length < 3 || title.length > 120) errors.title = 'Title must be between 3 and 120 characters'
   if (task.description.trim().length > 2000) errors.description = 'Description must be at most 2000 characters'
   if (task.dueDate && task.dueDate < todayIso()) errors.dueDate = 'Due date cannot be in the past'
+  else if (task.dueTime && !task.dueDate) errors.dueTime = 'Choose a due date to go with the time'
+  else if (task.dueTime && isPastDeadline(task.dueDate, task.dueTime)) {
+    errors.dueTime = 'This time has already passed'
+  }
   return errors
 }
 
@@ -144,8 +148,13 @@ export default function TeamWork() {
 
   const handleTaskChange = (event) => {
     const { name, value } = event.target
-    setTask((prev) => ({ ...prev, [name]: value, ...(name === 'projectId' ? { assigneeIds: [] } : {}) }))
-    setTaskErrors((prev) => ({ ...prev, [name]: undefined }))
+    setTask((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(name === 'projectId' ? { assigneeIds: [] } : {}),
+      ...(name === 'dueDate' && !value ? { dueTime: '' } : {}),
+    }))
+    setTaskErrors((prev) => ({ ...prev, [name]: undefined, ...(name === 'dueDate' ? { dueTime: undefined } : {}) }))
   }
 
   const handleTaskAssignees = (assigneeIds) => {
@@ -169,6 +178,7 @@ export default function TeamWork() {
         title: task.title.trim(),
         description: task.description.trim() || null,
         dueDate: task.dueDate || null,
+        dueTime: (task.dueDate && task.dueTime) || null,
       })
       setTask(EMPTY_TASK)
       setMessage(`"${task.title.trim()}" assigned to ${namesOf(created.map((w) => w.assigneeId), members)}.`)
@@ -424,6 +434,17 @@ export default function TeamWork() {
                     error={taskErrors.dueDate}
                   />
 
+                  <FormField
+                    id="dueTime"
+                    label="Due time (optional)"
+                    type="time"
+                    value={task.dueTime}
+                    onChange={handleTaskChange}
+                    error={taskErrors.dueTime}
+                    disabled={!task.dueDate}
+                    hint={task.dueDate ? 'Leave empty for end of day' : 'Choose a due date first'}
+                  />
+
                   <div className="form-actions span-2">
                     <button type="submit" className="btn btn-primary" disabled={creating}>
                       {creating && <Spinner />}
@@ -516,7 +537,7 @@ export default function TeamWork() {
                           )}
                         </td>
                         <td className="cell-muted">
-                          <DueDate value={w.dueDate} open={open} />
+                          <DueDate value={w.dueDate} time={w.dueTime} open={open} />
                         </td>
                         <td className="cell-muted">{formatDate(w.updatedAt)}</td>
                         <td className="cell-actions">

@@ -13,6 +13,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 /**
  * A piece of work a Lead gave to an employee in their department: a project task or a ticket.
@@ -53,6 +54,9 @@ public class WorkItem {
     private WorkItemStatus status = WorkItemStatus.ASSIGNED;
 
     private LocalDate dueDate;
+
+    /** Optional time of day on {@link #dueDate}; without it the work is due by the end of that day. */
+    private LocalTime dueTime;
 
     /** Why the employee could not do it; set while {@link WorkItemStatus#DECLINED}. */
     private String declineReason;

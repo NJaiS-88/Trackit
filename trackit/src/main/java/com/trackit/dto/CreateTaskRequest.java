@@ -1,11 +1,14 @@
 package com.trackit.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 /** Creates the same task for each chosen employee; each gets their own work item. */
@@ -26,6 +29,14 @@ public record CreateTaskRequest(
         String description,
 
         @FutureOrPresent(message = "Due date cannot be in the past")
-        LocalDate dueDate
+        LocalDate dueDate,
+
+        LocalTime dueTime
 ) {
+
+    @JsonIgnore
+    @AssertTrue(message = "Choose a due date to go with the time")
+    public boolean isDueTimeWithDate() {
+        return dueTime == null || dueDate != null;
+    }
 }

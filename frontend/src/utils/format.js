@@ -16,12 +16,24 @@ export function formatDay(value) {
   return dateFormatter.format(new Date(year, month - 1, day))
 }
 
-/** True when a calendar date ("2026-11-05") is before today. */
-export function isPastDay(value) {
-  if (!value) return false
-  const [year, month, day] = value.split('-').map(Number)
-  const today = new Date()
-  return new Date(year, month - 1, day) < new Date(today.getFullYear(), today.getMonth(), today.getDate())
+const timeFormatter = new Intl.DateTimeFormat(undefined, { timeStyle: 'short' })
+
+/** A deadline as a local Date: the given time ("17:30") on that day, or the end of the day without one. */
+export function deadlineOf(date, time) {
+  const [year, month, day] = date.split('-').map(Number)
+  if (!time) return new Date(year, month - 1, day, 23, 59, 59, 999)
+  const [hours, minutes] = time.split(':').map(Number)
+  return new Date(year, month - 1, day, hours, minutes)
+}
+
+/** "Nov 5, 2026" or "Nov 5, 2026, 5:30 PM". */
+export function formatDeadline(date, time) {
+  if (!date) return '—'
+  return time ? `${formatDay(date)}, ${timeFormatter.format(deadlineOf(date, time))}` : formatDay(date)
+}
+
+export function isPastDeadline(date, time) {
+  return Boolean(date) && deadlineOf(date, time) < new Date()
 }
 
 /** Today as "YYYY-MM-DD" in local time, for date inputs' `min`. */
