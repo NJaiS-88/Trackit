@@ -105,6 +105,7 @@ public class WorkItemService {
         Map<String, String> assigneeNames = userNames(workByIncident.values().stream()
                 .flatMap(List::stream).map(WorkItem::getAssignedTo));
 
+        Instant now = Instant.now();
         return incidents.stream().map(incident -> {
             Priority priority = priorityOf(incident);
             return new TeamTicketResponse(
@@ -116,6 +117,8 @@ public class WorkItemService {
                     priority,
                     priority == null ? null : priorityService.getPriorityLabel(priority),
                     incident.getStatus(),
+                    slaService.statusAt(incident, now),
+                    incident.getDueAt(),
                     reporterNames.get(incident.getCreatedBy()),
                     incident.getCreatedAt(),
                     toAssignees(workByIncident.getOrDefault(incident.getId(), List.of()), assigneeNames));
@@ -432,6 +435,7 @@ public class WorkItemService {
                 .findAllById(ids(items.stream().map(WorkItem::getIncidentId)))
                 .stream().collect(Collectors.toMap(Incident::getId, Function.identity()));
 
+        Instant now = Instant.now();
         return items.stream().map(w -> {
             Incident incident = w.getIncidentId() == null ? null : incidents.get(w.getIncidentId());
             return new WorkItemResponse(
@@ -447,6 +451,8 @@ public class WorkItemService {
                     w.getIncidentId(),
                     incident == null ? null : incident.getIncidentNumber(),
                     incident == null ? null : priorityOf(incident),
+                    incident == null ? null : incident.getDueAt(),
+                    incident == null ? null : slaService.statusAt(incident, now),
                     w.getAssignedTo(),
                     users.get(w.getAssignedTo()),
                     users.get(w.getAssignedBy()),

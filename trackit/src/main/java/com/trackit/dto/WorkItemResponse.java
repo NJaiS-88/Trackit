@@ -1,6 +1,7 @@
 package com.trackit.dto;
 
 import com.trackit.model.enums.Priority;
+import com.trackit.model.enums.SlaStatus;
 import com.trackit.model.enums.WorkItemStatus;
 import com.trackit.model.enums.WorkItemType;
 
@@ -10,7 +11,8 @@ import java.time.LocalTime;
 
 /**
  * A work item with every referenced name resolved. Project fields are set for project tasks;
- * ticket fields ({@code incident*}, {@code priority}) for tickets.
+ * ticket fields ({@code incident*}, {@code priority}, {@code sla*}) for tickets, whose deadline is the
+ * ticket's SLA deadline rather than {@code dueDate}.
  */
 public record WorkItemResponse(
         String id,
@@ -25,6 +27,8 @@ public record WorkItemResponse(
         String incidentId,
         String incidentNumber,
         Priority priority,
+        Instant slaDueAt,
+        SlaStatus slaStatus,
         String assigneeId,
         String assigneeName,
         String assignedByName,
