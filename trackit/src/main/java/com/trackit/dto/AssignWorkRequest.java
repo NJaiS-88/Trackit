@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 
 import java.time.LocalDate;
 
-/** Assigns a ticket, or reassigns existing work, to an employee. {@code dueDate} is optional. */
+/** Reassigns existing work to an employee. {@code dueDate} is optional. */
 public record AssignWorkRequest(
 
         @NotBlank(message = "Employee is required")

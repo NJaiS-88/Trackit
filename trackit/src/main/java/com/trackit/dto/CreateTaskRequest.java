@@ -2,17 +2,21 @@ package com.trackit.dto;
 
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
+import java.util.List;
 
+/** Creates the same task for each chosen employee; each gets their own work item. */
 public record CreateTaskRequest(
 
         @NotBlank(message = "Project is required")
         String projectId,
 
-        @NotBlank(message = "Employee is required")
-        String assigneeId,
+        @NotEmpty(message = "Choose at least one employee")
+        @Size(max = 50, message = "At most 50 employees can be assigned at once")
+        List<@NotBlank(message = "Employee is required") String> assigneeIds,
 
         @NotBlank(message = "Title is required")
         @Size(min = 3, max = 120, message = "Title must be between 3 and 120 characters")

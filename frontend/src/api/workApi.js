@@ -11,10 +11,11 @@ import axiosInstance from './axiosInstance'
  *   dueDate: string | null, declineReason: string | null,
  *   createdAt: string, updatedAt: string, completedAt: string | null
  * }} WorkItem
+ * @typedef {{workItemId: string, assigneeId: string, name: string | null, status: WorkItemStatus}} TicketAssignee
  * @typedef {{
  *   id: string, incidentNumber: string, title: string, description: string, category: string,
  *   priority: string, priorityLabel: string, status: string, reporterName: string | null, createdAt: string,
- *   workItemId: string | null, workAssigneeName: string | null, workStatus: WorkItemStatus | null
+ *   assignees: TicketAssignee[]
  * }} TeamTicket
  */
 
@@ -34,15 +35,15 @@ export async function getTeamTickets() {
   return data
 }
 
-/** @returns {Promise<WorkItem>} */
+/** Creates one work item per employee in `task.assigneeIds`. @returns {Promise<WorkItem[]>} */
 export async function createTask(task) {
   const { data } = await axiosInstance.post('/api/team/work/tasks', task)
   return data
 }
 
-/** @returns {Promise<WorkItem>} */
-export async function assignTicket(incidentId, assigneeId, dueDate = null) {
-  const { data } = await axiosInstance.post(`/api/team/tickets/${id(incidentId)}/assign`, { assigneeId, dueDate })
+/** Assigns a ticket to every employee in `assigneeIds`. @returns {Promise<WorkItem[]>} */
+export async function assignTicket(incidentId, assigneeIds, dueDate = null) {
+  const { data } = await axiosInstance.post(`/api/team/tickets/${id(incidentId)}/assign`, { assigneeIds, dueDate })
   return data
 }
 

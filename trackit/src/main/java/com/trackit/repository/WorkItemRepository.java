@@ -1,12 +1,10 @@
 package com.trackit.repository;
 
 import com.trackit.model.WorkItem;
-import com.trackit.model.enums.WorkItemStatus;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
 public interface WorkItemRepository extends MongoRepository<WorkItem, String> {
 
@@ -16,11 +14,9 @@ public interface WorkItemRepository extends MongoRepository<WorkItem, String> {
 
     List<WorkItem> findAllByOrderByCreatedAtDesc();
 
-    List<WorkItem> findByIncidentIdInAndStatusIn(Collection<String> incidentIds, Collection<WorkItemStatus> statuses);
+    List<WorkItem> findByIncidentIdInOrderByCreatedAtAsc(Collection<String> incidentIds);
 
-    boolean existsByIncidentIdAndStatusIn(String incidentId, Collection<WorkItemStatus> statuses);
-
-    Optional<WorkItem> findFirstByIncidentIdOrderByCreatedAtDesc(String incidentId);
+    List<WorkItem> findByIncidentIdOrderByCreatedAtAsc(String incidentId);
 
     List<WorkItem> findByProjectIdIn(Collection<String> projectIds);
 }

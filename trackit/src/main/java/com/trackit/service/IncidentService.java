@@ -7,6 +7,7 @@ import com.trackit.dto.IncidentResponse;
 import com.trackit.dto.IncidentSummaryResponse;
 import com.trackit.dto.PagedResponse;
 import com.trackit.dto.StatusChangeRequest;
+import com.trackit.dto.TicketAssigneeResponse;
 import com.trackit.dto.UpdateIncidentRequest;
 import com.trackit.exception.InvalidStatusTransitionException;
 import com.trackit.exception.ResourceNotFoundException;
@@ -275,11 +276,12 @@ public class IncidentService {
     }
 
     private IncidentResponse toResponse(Incident incident) {
-        WorkItem work = incident.getId() == null
-                ? null
-                : workItemRepository.findFirstByIncidentIdOrderByCreatedAtDesc(incident.getId()).orElse(null);
-        Map<String, String> names = resolveUserNames(Stream.of(
-                incident.getCreatedBy(), incident.getAssignedTo(), work == null ? null : work.getAssignedTo()));
+        List<WorkItem> work = incident.getId() == null
+                ? List.of()
+                : workItemRepository.findByIncidentIdOrderByCreatedAtAsc(incident.getId());
+        Map<String, String> names = resolveUserNames(Stream.concat(
+                Stream.of(incident.getCreatedBy(), incident.getAssignedTo()),
+                work.stream().map(WorkItem::getAssignedTo)));
         Function<String, String> nameOf = id -> id == null ? null : names.get(id);
         Priority priority = effectivePriority(incident);
         return new IncidentResponse(
@@ -302,8 +304,10 @@ public class IncidentService {
                 incident.getCreatedAt(),
                 incident.getUpdatedAt(),
                 incident.getDueAt(),
-                work == null ? null : nameOf.apply(work.getAssignedTo()),
-                work == null ? null : work.getStatus());
+                work.stream()
+                        .map(w -> new TicketAssigneeResponse(
+                                w.getId(), w.getAssignedTo(), nameOf.apply(w.getAssignedTo()), w.getStatus()))
+                        .toList());
     }
 
     private IncidentSummaryResponse toSummary(Incident incident, Map<String, String> assigneeNames) {

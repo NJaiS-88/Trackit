@@ -1,5 +1,6 @@
 package com.trackit.controller;
 
+import com.trackit.dto.AssignTicketRequest;
 import com.trackit.dto.AssignWorkRequest;
 import com.trackit.dto.CreateTaskRequest;
 import com.trackit.dto.TeamTicketResponse;
@@ -48,17 +49,17 @@ public class TeamWorkController {
     @PostMapping("/work/tasks")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ENGINEER')")
-    @Operation(summary = "Assign a project task to an employee on that project")
-    public WorkItemResponse createTask(@Valid @RequestBody CreateTaskRequest request) {
+    @Operation(summary = "Assign a project task to one or more employees on that project")
+    public List<WorkItemResponse> createTask(@Valid @RequestBody CreateTaskRequest request) {
         return workItemService.createTask(CurrentUser.get().id(), request);
     }
 
     @PostMapping("/tickets/{incidentId}/assign")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ENGINEER')")
-    @Operation(summary = "Assign a department ticket to an employee")
-    public WorkItemResponse assignTicket(@PathVariable String incidentId,
-                                         @Valid @RequestBody AssignWorkRequest request) {
+    @Operation(summary = "Assign a department ticket to one or more employees")
+    public List<WorkItemResponse> assignTicket(@PathVariable String incidentId,
+                                               @Valid @RequestBody AssignTicketRequest request) {
         return workItemService.assignTicket(CurrentUser.get().id(), incidentId, request);
     }
 

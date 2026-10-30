@@ -118,15 +118,19 @@ export default function IncidentDetail() {
   const meta = [
     { label: 'Created by', value: incident.createdByName ?? 'Unknown user' },
     { label: 'Assigned to', value: incident.assignedToName ?? 'Unassigned' },
-    ...(incident.workAssigneeName
+    ...(incident.workAssignees?.length > 0
       ? [
           {
             label: 'Handled by',
             value: (
-              <span className="assignee-cell">
-                {incident.workAssigneeName}
-                <WorkStatusBadge status={incident.workStatus} />
-              </span>
+              <ul className="assignee-list">
+                {incident.workAssignees.map((a) => (
+                  <li key={a.workItemId}>
+                    <span>{a.name ?? 'Unknown employee'}</span>
+                    <WorkStatusBadge status={a.status} />
+                  </li>
+                ))}
+              </ul>
             ),
           },
         ]

@@ -5,6 +5,7 @@ import { getTeam } from '../api/teamApi'
 import { assignTicket, createTask, getTeamTickets, getTeamWork, reassignWork } from '../api/workApi'
 import DueDate from '../components/DueDate'
 import FormField from '../components/FormField'
+import MultiSelect from '../components/MultiSelect'
 import PriorityBadge from '../components/PriorityBadge'
 import Spinner from '../components/Spinner'
 import StatusBadge from '../components/StatusBadge'
@@ -20,13 +21,19 @@ import {
 } from '../constants/work'
 import { formatDate, todayIso } from '../utils/format'
 
-const EMPTY_TASK = { projectId: '', assigneeId: '', title: '', description: '', dueDate: '' }
+const EMPTY_TASK = { projectId: '', assigneeIds: [], title: '', description: '', dueDate: '' }
 const REASSIGNABLE = new Set(['ASSIGNED', 'DECLINED'])
+const OPEN_WORK = new Set(['ASSIGNED', 'IN_PROGRESS', 'DECLINED'])
+
+function namesOf(ids, members) {
+  const names = ids.map((id) => members.find((m) => m.id === id)?.name ?? 'an employee')
+  return names.length <= 2 ? names.join(' and ') : `${names.length} employees`
+}
 
 function validateTask(task) {
   const errors = {}
   if (!task.projectId) errors.projectId = 'Choose a project'
-  if (!task.assigneeId) errors.assigneeId = 'Choose an employee'
+  if (task.assigneeIds.length === 0) errors.assigneeIds = 'Choose at least one employee'
   const title = task.title.trim()
   if (!title) errors.title = 'Title is required'
   else if (title.length < 3 || title.length > 120) errors.title = 'Title must be between 3 and 120 characters'
@@ -111,14 +118,18 @@ export default function TeamWork() {
     }
   }
 
-  const handleAssignTicket = (ticket) => {
-    const assigneeId = ticketChoice[ticket.id]
-    if (!assigneeId) {
-      setActionError(`Choose an employee for ${ticket.incidentNumber} first.`)
+  const handleAssignTicket = async (ticket) => {
+    const assigneeIds = ticketChoice[ticket.id] ?? []
+    if (assigneeIds.length === 0) {
+      setActionError(`Choose at least one employee for ${ticket.incidentNumber} first.`)
       return
     }
-    const name = members.find((m) => m.id === assigneeId)?.name ?? 'the employee'
-    runAction(ticket.id, () => assignTicket(ticket.id, assigneeId), `${ticket.incidentNumber} assigned to ${name}.`)
+    await runAction(
+      ticket.id,
+      () => assignTicket(ticket.id, assigneeIds),
+      `${ticket.incidentNumber} assigned to ${namesOf(assigneeIds, members)}.`,
+    )
+    setTicketChoice((prev) => ({ ...prev, [ticket.id]: [] }))
   }
 
   const handleReassign = (item) => {
@@ -133,8 +144,13 @@ export default function TeamWork() {
 
   const handleTaskChange = (event) => {
     const { name, value } = event.target
-    setTask((prev) => ({ ...prev, [name]: value, ...(name === 'projectId' ? { assigneeId: '' } : {}) }))
+    setTask((prev) => ({ ...prev, [name]: value, ...(name === 'projectId' ? { assigneeIds: [] } : {}) }))
     setTaskErrors((prev) => ({ ...prev, [name]: undefined }))
+  }
+
+  const handleTaskAssignees = (assigneeIds) => {
+    setTask((prev) => ({ ...prev, assigneeIds }))
+    setTaskErrors((prev) => ({ ...prev, assigneeIds: undefined }))
   }
 
   const handleCreateTask = async (event) => {
@@ -149,13 +165,13 @@ export default function TeamWork() {
     try {
       const created = await createTask({
         projectId: task.projectId,
-        assigneeId: task.assigneeId,
+        assigneeIds: task.assigneeIds,
         title: task.title.trim(),
         description: task.description.trim() || null,
         dueDate: task.dueDate || null,
       })
       setTask(EMPTY_TASK)
-      setMessage(`"${created.title}" assigned to ${created.assigneeName ?? 'the employee'}.`)
+      setMessage(`"${task.title.trim()}" assigned to ${namesOf(created.map((w) => w.assigneeId), members)}.`)
       reload()
     } catch (error) {
       const { message: errorMessage, fieldErrors } = parseApiError(error)
@@ -268,39 +284,47 @@ export default function TeamWork() {
                         <StatusBadge status={t.status} />
                       </td>
                       <td>
-                        {t.workItemId ? (
-                          <div className="assignee-cell">
-                            <span>{t.workAssigneeName ?? 'Unknown employee'}</span>
-                            <WorkStatusBadge status={t.workStatus} />
-                          </div>
-                        ) : (
-                          <div className="action-group">
-                            <select
-                              className="control control-sm"
-                              value={ticketChoice[t.id] ?? ''}
-                              onChange={(event) =>
-                                setTicketChoice((prev) => ({ ...prev, [t.id]: event.target.value }))
-                              }
-                              disabled={pendingIds.has(t.id) || members.length === 0}
-                              aria-label={`Employee for ${t.incidentNumber}`}
-                            >
-                              <option value="">{members.length === 0 ? 'No employees' : 'Choose employee'}</option>
-                              {members.map((m) => (
-                                <option key={m.id} value={m.id}>
-                                  {m.name}
-                                </option>
-                              ))}
-                            </select>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-primary"
-                              onClick={() => handleAssignTicket(t)}
-                              disabled={pendingIds.has(t.id) || !ticketChoice[t.id]}
-                            >
-                              {pendingIds.has(t.id) ? 'Assigning…' : 'Assign'}
-                            </button>
-                          </div>
-                        )}
+                        {(() => {
+                          const onTicket = new Set(
+                            t.assignees.filter((a) => OPEN_WORK.has(a.status)).map((a) => a.assigneeId),
+                          )
+                          const available = members.filter((m) => !onTicket.has(m.id))
+                          const chosen = ticketChoice[t.id] ?? []
+                          return (
+                            <div className="ticket-assign">
+                              {t.assignees.length > 0 && (
+                                <ul className="assignee-list">
+                                  {t.assignees.map((a) => (
+                                    <li key={a.workItemId}>
+                                      <span>{a.name ?? 'Unknown employee'}</span>
+                                      <WorkStatusBadge status={a.status} />
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                              <div className="action-group">
+                                <MultiSelect
+                                  size="sm"
+                                  options={available.map((m) => ({ value: m.id, label: m.name }))}
+                                  selected={chosen}
+                                  onChange={(ids) => setTicketChoice((prev) => ({ ...prev, [t.id]: ids }))}
+                                  placeholder={t.assignees.length > 0 ? 'Add employees' : 'Choose employees'}
+                                  emptyText="Everyone in your department is already on this ticket"
+                                  disabled={pendingIds.has(t.id) || members.length === 0}
+                                  ariaLabel={`Employees for ${t.incidentNumber}`}
+                                />
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-primary"
+                                  onClick={() => handleAssignTicket(t)}
+                                  disabled={pendingIds.has(t.id) || chosen.length === 0}
+                                >
+                                  {pendingIds.has(t.id) ? 'Assigning…' : 'Assign'}
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })()}
                       </td>
                     </tr>
                   ))}
@@ -341,27 +365,28 @@ export default function TeamWork() {
                     ))}
                   </FormField>
 
-                  <FormField
-                    id="assigneeId"
-                    label="Employee"
-                    as="select"
-                    value={task.assigneeId}
-                    onChange={handleTaskChange}
-                    error={taskErrors.assigneeId}
-                    disabled={!task.projectId}
-                    hint={
-                      task.projectId && projectMembers.length === 0
-                        ? 'Nobody is on this project yet. Assign employees to it on My Team.'
-                        : undefined
-                    }
-                  >
-                    <option value="">{task.projectId ? 'Select an employee' : 'Choose a project first'}</option>
-                    {projectMembers.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name}
-                      </option>
-                    ))}
-                  </FormField>
+                  <div className="form-field">
+                    <span className="form-label">Employees</span>
+                    <MultiSelect
+                      options={projectMembers.map((m) => ({ value: m.id, label: m.name }))}
+                      selected={task.assigneeIds}
+                      onChange={handleTaskAssignees}
+                      placeholder={task.projectId ? 'Select employees' : 'Choose a project first'}
+                      emptyText="Nobody is on this project yet"
+                      disabled={!task.projectId}
+                      invalid={Boolean(taskErrors.assigneeIds)}
+                      ariaLabel="Employees"
+                    />
+                    {taskErrors.assigneeIds ? (
+                      <p className="field-error">{taskErrors.assigneeIds}</p>
+                    ) : (
+                      <p className="field-hint">
+                        {task.projectId && projectMembers.length === 0
+                          ? 'Assign employees to this project on My Team first.'
+                          : 'Each selected employee gets their own copy of the task.'}
+                      </p>
+                    )}
+                  </div>
 
                   <div className="span-2">
                     <FormField

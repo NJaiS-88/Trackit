@@ -2,11 +2,11 @@ package com.trackit.dto;
 
 import com.trackit.model.enums.IncidentStatus;
 import com.trackit.model.enums.Priority;
-import com.trackit.model.enums.WorkItemStatus;
 
 import java.time.Instant;
+import java.util.List;
 
-/** An unresolved ticket raised in the Lead's department, with the open work item handling it (if any). */
+/** An unresolved ticket raised in the Lead's department, with every employee assigned to it. */
 public record TeamTicketResponse(
         String id,
         String incidentNumber,
@@ -18,8 +18,6 @@ public record TeamTicketResponse(
         IncidentStatus status,
         String reporterName,
         Instant createdAt,
-        String workItemId,
-        String workAssigneeName,
-        WorkItemStatus workStatus
+        List<TicketAssigneeResponse> assignees
 ) {
 }

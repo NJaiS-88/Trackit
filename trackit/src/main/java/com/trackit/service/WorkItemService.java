@@ -1,8 +1,10 @@
 package com.trackit.service;
 
+import com.trackit.dto.AssignTicketRequest;
 import com.trackit.dto.AssignWorkRequest;
 import com.trackit.dto.CreateTaskRequest;
 import com.trackit.dto.TeamTicketResponse;
+import com.trackit.dto.TicketAssigneeResponse;
 import com.trackit.dto.WorkItemResponse;
 import com.trackit.exception.ResourceNotFoundException;
 import com.trackit.exception.UnauthorizedException;
@@ -33,6 +35,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -44,7 +47,8 @@ import java.util.stream.Stream;
 
 /**
  * Work a Lead hands to employees in their own department: project tasks and tickets raised there.
- * Ticket work keeps its incident in step: assigned, in progress, and resolved once the work is completed.
+ * Several employees can share a ticket, each with their own work item. The ticket follows them: assigned,
+ * in progress while anyone is working, and resolved once everyone assigned has completed their part.
  */
 @Service
 @RequiredArgsConstructor
@@ -93,16 +97,15 @@ public class WorkItemService {
             return List.of();
         }
 
-        Map<String, WorkItem> openWork = workItemRepository
-                .findByIncidentIdInAndStatusIn(incidents.stream().map(Incident::getId).toList(), WorkItemStatus.OPEN)
+        Map<String, List<WorkItem>> workByIncident = workItemRepository
+                .findByIncidentIdInOrderByCreatedAtAsc(incidents.stream().map(Incident::getId).toList())
                 .stream()
-                .collect(Collectors.toMap(WorkItem::getIncidentId, Function.identity(),
-                        (a, b) -> a.getCreatedAt().isAfter(b.getCreatedAt()) ? a : b));
-        Map<String, String> assigneeNames = userNames(openWork.values().stream().map(WorkItem::getAssignedTo));
+                .collect(Collectors.groupingBy(WorkItem::getIncidentId));
+        Map<String, String> assigneeNames = userNames(workByIncident.values().stream()
+                .flatMap(List::stream).map(WorkItem::getAssignedTo));
 
         return incidents.stream().map(incident -> {
             Priority priority = priorityOf(incident);
-            WorkItem work = openWork.get(incident.getId());
             return new TeamTicketResponse(
                     incident.getId(),
                     incident.getIncidentNumber(),
@@ -114,13 +117,12 @@ public class WorkItemService {
                     incident.getStatus(),
                     reporterNames.get(incident.getCreatedBy()),
                     incident.getCreatedAt(),
-                    work == null ? null : work.getId(),
-                    work == null ? null : assigneeNames.get(work.getAssignedTo()),
-                    work == null ? null : work.getStatus());
+                    toAssignees(workByIncident.getOrDefault(incident.getId(), List.of()), assigneeNames));
         }).toList();
     }
 
-    public WorkItemResponse createTask(String leadId, CreateTaskRequest request) {
+    /** Gives the same task to every chosen employee; all must be on the project. */
+    public List<WorkItemResponse> createTask(String leadId, CreateTaskRequest request) {
         String departmentId = requireDepartment(findUser(leadId));
         Project project = projectRepository.findById(request.projectId())
                 .filter(p -> departmentId.equals(p.getDepartmentId()))
@@ -128,27 +130,33 @@ public class WorkItemService {
         if (project.getStatus() == ProjectStatus.COMPLETED) {
             throw new WorkflowViolationException("Work cannot be added to a completed project");
         }
-        User assignee = findDepartmentEmployee(departmentId, request.assigneeId());
-        requireOnProject(assignee, project.getId(), project.getName());
+        List<User> assignees = findDepartmentEmployees(departmentId, request.assigneeIds());
+        assignees.forEach(assignee -> requireOnProject(assignee, project.getId(), project.getName()));
 
         Instant now = Instant.now();
-        WorkItem item = WorkItem.builder()
-                .type(WorkItemType.PROJECT_TASK)
-                .title(request.title().trim())
-                .description(trimToNull(request.description()))
-                .departmentId(departmentId)
-                .projectId(project.getId())
-                .assignedTo(assignee.getId())
-                .assignedBy(leadId)
-                .status(WorkItemStatus.ASSIGNED)
-                .dueDate(request.dueDate())
-                .createdAt(now)
-                .updatedAt(now)
-                .build();
-        return toResponse(workItemRepository.save(item));
+        List<WorkItem> items = assignees.stream()
+                .map(assignee -> WorkItem.builder()
+                        .type(WorkItemType.PROJECT_TASK)
+                        .title(request.title().trim())
+                        .description(trimToNull(request.description()))
+                        .departmentId(departmentId)
+                        .projectId(project.getId())
+                        .assignedTo(assignee.getId())
+                        .assignedBy(leadId)
+                        .status(WorkItemStatus.ASSIGNED)
+                        .dueDate(request.dueDate())
+                        .createdAt(now)
+                        .updatedAt(now)
+                        .build())
+                .toList();
+        return toResponses(workItemRepository.saveAll(items));
     }
 
-    public WorkItemResponse assignTicket(String leadId, String incidentId, AssignWorkRequest request) {
+    /**
+     * Assigns a ticket to one or more employees, each with their own work item. Employees can be added to a
+     * ticket that is already being worked on; the ticket resolves once everyone assigned has completed it.
+     */
+    public List<WorkItemResponse> assignTicket(String leadId, String incidentId, AssignTicketRequest request) {
         String departmentId = requireDepartment(findUser(leadId));
         Incident incident = incidentRepository.findById(incidentId)
                 .filter(Incident::isActive)
@@ -163,34 +171,45 @@ public class WorkItemService {
             throw new WorkflowViolationException(
                     "This ticket is already " + incident.getStatus().name().toLowerCase(Locale.ROOT));
         }
-        if (workItemRepository.existsByIncidentIdAndStatusIn(incidentId, WorkItemStatus.OPEN)) {
-            throw new WorkflowViolationException("This ticket is already assigned. Reassign it from the work list.");
+        List<User> assignees = findDepartmentEmployees(departmentId, request.assigneeIds());
+
+        Set<String> alreadyAssigned = workItemRepository.findByIncidentIdOrderByCreatedAtAsc(incidentId).stream()
+                .filter(w -> WorkItemStatus.OPEN.contains(w.getStatus()))
+                .map(WorkItem::getAssignedTo)
+                .collect(Collectors.toSet());
+        List<String> duplicates = assignees.stream()
+                .filter(u -> alreadyAssigned.contains(u.getId()))
+                .map(User::getName)
+                .toList();
+        if (!duplicates.isEmpty()) {
+            throw new WorkflowViolationException("Already assigned to this ticket: " + String.join(", ", duplicates));
         }
-        User assignee = findDepartmentEmployee(departmentId, request.assigneeId());
 
         Instant now = Instant.now();
-        WorkItem item = workItemRepository.save(WorkItem.builder()
-                .type(WorkItemType.TICKET)
-                .title(incident.getTitle())
-                .description(incident.getDescription())
-                .departmentId(departmentId)
-                .incidentId(incident.getId())
-                .assignedTo(assignee.getId())
-                .assignedBy(leadId)
-                .status(WorkItemStatus.ASSIGNED)
-                .dueDate(request.dueDate())
-                .createdAt(now)
-                .updatedAt(now)
-                .build());
+        List<WorkItem> items = workItemRepository.saveAll(assignees.stream()
+                .map(assignee -> WorkItem.builder()
+                        .type(WorkItemType.TICKET)
+                        .title(incident.getTitle())
+                        .description(incident.getDescription())
+                        .departmentId(departmentId)
+                        .incidentId(incident.getId())
+                        .assignedTo(assignee.getId())
+                        .assignedBy(leadId)
+                        .status(WorkItemStatus.ASSIGNED)
+                        .dueDate(request.dueDate())
+                        .createdAt(now)
+                        .updatedAt(now)
+                        .build())
+                .toList());
 
-        // The Lead owns the ticket; the employee does the work
+        // The Lead owns the ticket; the employees do the work
         if (incident.getStatus() == IncidentStatus.OPEN || incident.getStatus() == IncidentStatus.REOPENED) {
             incident.setStatus(IncidentStatus.ASSIGNED);
         }
         incident.setAssignedTo(leadId);
         incident.setUpdatedAt(now);
         incidentRepository.save(incident);
-        return toResponse(item);
+        return toResponses(items);
     }
 
     /** Hands open work (typically declined) to another employee, or back to the same one. */
@@ -207,6 +226,15 @@ public class WorkItemService {
             String projectName = projectRepository.findById(item.getProjectId()).map(Project::getName).orElse("this");
             requireOnProject(assignee, item.getProjectId(), projectName);
         }
+        if (item.getType() == WorkItemType.TICKET && !assignee.getId().equals(item.getAssignedTo())) {
+            boolean alreadyOnTicket = workItemRepository.findByIncidentIdOrderByCreatedAtAsc(item.getIncidentId())
+                    .stream()
+                    .anyMatch(w -> assignee.getId().equals(w.getAssignedTo())
+                            && WorkItemStatus.OPEN.contains(w.getStatus()));
+            if (alreadyOnTicket) {
+                throw new WorkflowViolationException(assignee.getName() + " is already assigned to this ticket");
+            }
+        }
 
         item.setAssignedTo(assignee.getId());
         item.setAssignedBy(leadId);
@@ -217,7 +245,7 @@ public class WorkItemService {
         }
         item.setUpdatedAt(Instant.now());
         WorkItem saved = workItemRepository.save(item);
-        syncTicket(saved, Set.of(IncidentStatus.IN_PROGRESS), IncidentStatus.ASSIGNED);
+        pauseTicketIfIdle(saved);
         return toResponse(saved);
     }
 
@@ -250,8 +278,7 @@ public class WorkItemService {
         item.setCompletedAt(now);
         item.setUpdatedAt(now);
         WorkItem saved = workItemRepository.save(item);
-        syncTicket(saved, Set.of(IncidentStatus.OPEN, IncidentStatus.ASSIGNED, IncidentStatus.IN_PROGRESS,
-                IncidentStatus.ON_HOLD, IncidentStatus.REOPENED), IncidentStatus.RESOLVED);
+        resolveTicketIfAllDone(saved);
         return toResponse(saved);
     }
 
@@ -264,8 +291,7 @@ public class WorkItemService {
         item.setDeclineReason(reason.trim());
         item.setUpdatedAt(Instant.now());
         WorkItem saved = workItemRepository.save(item);
-        // Nobody is working on the ticket until the Lead reassigns it
-        syncTicket(saved, Set.of(IncidentStatus.IN_PROGRESS), IncidentStatus.ASSIGNED);
+        pauseTicketIfIdle(saved);
         return toResponse(saved);
     }
 
@@ -289,6 +315,45 @@ public class WorkItemService {
                     incident.setUpdatedAt(Instant.now());
                     incidentRepository.save(incident);
                 });
+    }
+
+    /** A ticket is resolved once every employee assigned to it has completed their part. */
+    private void resolveTicketIfAllDone(WorkItem item) {
+        if (item.getType() != WorkItemType.TICKET || item.getIncidentId() == null) {
+            return;
+        }
+        boolean allDone = workItemRepository.findByIncidentIdOrderByCreatedAtAsc(item.getIncidentId()).stream()
+                .allMatch(w -> w.getStatus() == WorkItemStatus.COMPLETED);
+        if (allDone) {
+            syncTicket(item, Set.of(IncidentStatus.OPEN, IncidentStatus.ASSIGNED, IncidentStatus.IN_PROGRESS,
+                    IncidentStatus.ON_HOLD, IncidentStatus.REOPENED), IncidentStatus.RESOLVED);
+        }
+    }
+
+    /** Moves an in-progress ticket back to Assigned when nobody assigned to it is working on it any more. */
+    private void pauseTicketIfIdle(WorkItem item) {
+        if (item.getType() != WorkItemType.TICKET || item.getIncidentId() == null) {
+            return;
+        }
+        boolean someoneWorking = workItemRepository.findByIncidentIdOrderByCreatedAtAsc(item.getIncidentId()).stream()
+                .anyMatch(w -> w.getStatus() == WorkItemStatus.IN_PROGRESS);
+        if (!someoneWorking) {
+            syncTicket(item, Set.of(IncidentStatus.IN_PROGRESS), IncidentStatus.ASSIGNED);
+        }
+    }
+
+    /** Each employee once, in the order given; all must be active employees of the department. */
+    private List<User> findDepartmentEmployees(String departmentId, List<String> userIds) {
+        return new LinkedHashSet<>(userIds).stream()
+                .map(id -> findDepartmentEmployee(departmentId, id))
+                .toList();
+    }
+
+    private static List<TicketAssigneeResponse> toAssignees(List<WorkItem> items, Map<String, String> names) {
+        return items.stream()
+                .map(w -> new TicketAssigneeResponse(
+                        w.getId(), w.getAssignedTo(), names.get(w.getAssignedTo()), w.getStatus()))
+                .toList();
     }
 
     private User findUser(String userId) {
