@@ -1,0 +1,17 @@
+---
+description: How changes are split and handed over for commits in Trackit
+alwaysApply: true
+---
+
+# Commit workflow
+
+- **Never run `git commit` or `git push`.** The user commits and pushes everything themselves.
+- Work in **small batches**. Each batch is one meaningful change that keeps the app building:
+  - Group only files that belong together (e.g. a component + its styles, a service + the DTO it returns).
+  - Keep the changed lines small; split large features into several batches rather than one big diff.
+  - Don't mix unrelated changes (e.g. backend config and frontend UI) in one batch.
+- After each batch: run lint/build or compile, then give a **commit message** (conventional style, e.g.
+  `feat(incidents): ...`) and the exact `git add <files>` command.
+- **Wait for the user to commit** before starting the next batch.
+- Before starting a feature, share the batch plan (files + purpose per batch) and wait for approval.
+- Never print or commit `trackit/.env` or other secrets.

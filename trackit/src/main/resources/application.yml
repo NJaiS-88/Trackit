@@ -48,6 +48,16 @@ trackit:
     name: ${ADMIN_NAME:Administrator}
     email: ${ADMIN_EMAIL:}
     password: ${ADMIN_PASSWORD:}
+  sla:
+    # Time allowed to resolve an incident (calendar time, paused while On Hold).
+    # Override per environment with e.g. TRACKIT_SLA_RESOLUTION_P1=2h
+    resolution:
+      p1: 4h
+      p2: 8h
+      p3: 3d
+      p4: 5d
+    # "Due soon" once this share of the target time is left
+    due-soon-percent: 20
 
 management:
   endpoints:
