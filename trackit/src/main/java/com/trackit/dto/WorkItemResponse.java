@@ -32,6 +32,7 @@ public record WorkItemResponse(
         LocalTime dueTime,
         String declineReason,
         Instant createdAt,
+        Instant assignedAt,
         Instant updatedAt,
         Instant completedAt
 ) {

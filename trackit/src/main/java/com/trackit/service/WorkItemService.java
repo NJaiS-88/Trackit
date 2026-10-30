@@ -148,6 +148,7 @@ public class WorkItemService {
                         .dueDate(request.dueDate())
                         .dueTime(request.dueTime())
                         .createdAt(now)
+                        .assignedAt(now)
                         .updatedAt(now)
                         .build())
                 .toList();
@@ -200,6 +201,7 @@ public class WorkItemService {
                         .status(WorkItemStatus.ASSIGNED)
                         .dueDate(request.dueDate())
                         .createdAt(now)
+                        .assignedAt(now)
                         .updatedAt(now)
                         .build())
                 .toList());
@@ -242,6 +244,7 @@ public class WorkItemService {
 
         item.setAssignedTo(assignee.getId());
         item.setAssignedBy(leadId);
+        item.setAssignedAt(Instant.now());
         item.setStatus(WorkItemStatus.ASSIGNED);
         item.setDeclineReason(null);
         if (request.dueDate() != null) {
@@ -454,6 +457,7 @@ public class WorkItemService {
                     w.getDueTime(),
                     w.getDeclineReason(),
                     w.getCreatedAt(),
+                    w.getAssignedAt() == null ? w.getCreatedAt() : w.getAssignedAt(),
                     w.getUpdatedAt(),
                     w.getCompletedAt());
         }).toList();

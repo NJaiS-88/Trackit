@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { parseApiError } from '../api/axiosInstance'
 import { completeWork, declineWork, getMyWork, startWork } from '../api/workApi'
-import { WORK_TYPE_LABELS, workSource } from '../constants/work'
+import { WORK_TYPE_LABELS, deadlineState, workSource } from '../constants/work'
+import { useNow } from '../hooks/useNow'
 import { formatDate } from '../utils/format'
+import DeadlineAlert from './DeadlineAlert'
 import DueDate from './DueDate'
 import PriorityBadge from './PriorityBadge'
 import Spinner from './Spinner'
@@ -12,6 +14,7 @@ const OPEN_STATUSES = new Set(['ASSIGNED', 'IN_PROGRESS'])
 
 /** The signed-in employee's assigned work, with Start / Mark as done / Can't do actions. */
 export default function MyWork() {
+  const now = useNow()
   const [reloadCount, setReloadCount] = useState(0)
   const [result, setResult] = useState({ key: null, data: null, error: null })
   const [message, setMessage] = useState(null)
@@ -104,6 +107,8 @@ export default function MyWork() {
         </button>
       </div>
 
+      <DeadlineAlert items={items} now={now} />
+
       {message && (
         <div className="alert alert-success section-alert" role="status">
           {message}
@@ -173,8 +178,9 @@ export default function MyWork() {
             )}
             {openItems.map((w) => {
               const pending = pendingId === w.id
+              const urgency = deadlineState(w, now)
               return (
-                <tr key={w.id}>
+                <tr key={w.id} className={urgency ? `row-${urgency}` : undefined}>
                   <td>
                     <div className="cell-title">{w.title}</div>
                     <div className="cell-sub">
@@ -190,7 +196,7 @@ export default function MyWork() {
                   </td>
                   <td className="cell-muted">{w.assignedByName ?? '—'}</td>
                   <td className="cell-muted">
-                    <DueDate value={w.dueDate} time={w.dueTime} open />
+                    <DueDate item={w} now={now} />
                   </td>
                   <td>
                     <WorkStatusBadge status={w.status} />

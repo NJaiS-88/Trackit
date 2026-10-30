@@ -3,6 +3,7 @@ import { parseApiError } from '../api/axiosInstance'
 import { getAllDepartments } from '../api/departmentApi'
 import { getAllWork } from '../api/workApi'
 import DueDate from '../components/DueDate'
+import { useNow } from '../hooks/useNow'
 import PriorityBadge from '../components/PriorityBadge'
 import Spinner from '../components/Spinner'
 import WorkStatusBadge from '../components/WorkStatusBadge'
@@ -20,6 +21,7 @@ import { formatDate } from '../utils/format'
 const COLUMN_COUNT = 7
 
 export default function AdminWork() {
+  const now = useNow()
   const [reloadCount, setReloadCount] = useState(0)
   // `key` records which request a result belongs to; a mismatch means a fetch is in flight
   const [result, setResult] = useState({ key: null, data: null, error: null })
@@ -228,7 +230,7 @@ export default function AdminWork() {
                     )}
                   </td>
                   <td className="cell-muted">
-                    <DueDate value={w.dueDate} time={w.dueTime} open={w.status !== 'COMPLETED'} />
+                    <DueDate item={w} now={now} />
                   </td>
                   <td className="cell-muted">{formatDate(w.updatedAt)}</td>
                 </tr>

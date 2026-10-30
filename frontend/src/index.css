@@ -790,9 +790,94 @@ textarea.control {
   white-space: normal;
 }
 
+/* Deadlines: "due soon" once 80% of the time since assignment is used, "overdue" after the deadline */
+
+.due-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.due-flag {
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
 .due-overdue {
   color: var(--danger);
   font-weight: 500;
+}
+
+.due-overdue .due-flag {
+  background: var(--danger-bg);
+  color: #b91c1c;
+}
+
+.due-due-soon {
+  color: #b45309;
+  font-weight: 500;
+}
+
+.due-due-soon .due-flag {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.row-overdue td:first-child {
+  box-shadow: inset 3px 0 0 var(--danger);
+}
+
+.row-due-soon td:first-child {
+  box-shadow: inset 3px 0 0 #f59e0b;
+}
+
+.alert-warning {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+.deadline-alert {
+  margin-bottom: 1rem;
+}
+
+.deadline-alert ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.deadline-alert li + li {
+  margin-top: 0.15rem;
+}
+
+.deadline-alert-title {
+  font-weight: 600;
+}
+
+.deadline-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.deadline-chip-soon {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.deadline-chip-overdue {
+  background: var(--danger-bg);
+  color: #b91c1c;
+  border: 1px solid #fecaca;
 }
 
 .assignee-cell {

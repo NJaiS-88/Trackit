@@ -1,5 +1,6 @@
 import { useAuth } from '../hooks/useAuth'
 import { ROLE_LABELS } from '../constants/roles'
+import DeadlineChip from './DeadlineChip'
 
 export default function Navbar({ onToggleSidebar, sidebarOpen }) {
   const { user, role } = useAuth()
@@ -25,6 +26,7 @@ export default function Navbar({ onToggleSidebar, sidebarOpen }) {
       </button>
 
       <div className="navbar-user">
+        {role === 'EMPLOYEE' && <DeadlineChip />}
         <div className="navbar-user-text">
           <span className="navbar-user-name">{user.name}</span>
           <span className={`role-badge role-${role.toLowerCase()}`}>{ROLE_LABELS[role] ?? role}</span>
