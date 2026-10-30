@@ -63,6 +63,9 @@ public class WorkItem {
 
     private Instant createdAt;
 
+    /** When the current assignee got the work; resets on reassignment. Due-soon alerts measure from here. */
+    private Instant assignedAt;
+
     private Instant updatedAt;
 
     private Instant completedAt;

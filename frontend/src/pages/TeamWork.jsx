@@ -4,6 +4,7 @@ import { parseApiError } from '../api/axiosInstance'
 import { getTeam } from '../api/teamApi'
 import { assignTicket, createTask, getTeamTickets, getTeamWork, reassignWork } from '../api/workApi'
 import DueDate from '../components/DueDate'
+import { useNow } from '../hooks/useNow'
 import FormField from '../components/FormField'
 import MultiSelect from '../components/MultiSelect'
 import PriorityBadge from '../components/PriorityBadge'
@@ -50,6 +51,7 @@ function validateTask(task) {
 }
 
 export default function TeamWork() {
+  const now = useNow()
   const [reloadCount, setReloadCount] = useState(0)
   // `key` records which request a result belongs to; a mismatch means a fetch is in flight
   const [result, setResult] = useState({ key: null, data: null, error: null })
@@ -519,7 +521,6 @@ export default function TeamWork() {
                     </tr>
                   )}
                   {visibleWork.map((w) => {
-                    const open = w.status !== 'COMPLETED'
                     const options = reassignOptions(w)
                     return (
                       <tr key={w.id}>
@@ -537,7 +538,7 @@ export default function TeamWork() {
                           )}
                         </td>
                         <td className="cell-muted">
-                          <DueDate value={w.dueDate} time={w.dueTime} open={open} />
+                          <DueDate item={w} now={now} />
                         </td>
                         <td className="cell-muted">{formatDate(w.updatedAt)}</td>
                         <td className="cell-actions">

@@ -1,4 +1,22 @@
+import { deadlineOf } from '../utils/format'
+
 export const WORK_STATUSES = ['ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'DECLINED']
+
+/** Share of the time between assignment and deadline after which open work counts as due soon. */
+export const DUE_SOON_THRESHOLD = 0.8
+
+/**
+ * 'overdue' once the deadline has passed, 'due-soon' once 80% of the time from assignment to deadline is used,
+ * otherwise null. Completed work and work without a deadline are never flagged.
+ */
+export function deadlineState(item, now = Date.now()) {
+  if (!item.dueDate || item.status === 'COMPLETED') return null
+  const deadline = deadlineOf(item.dueDate, item.dueTime).getTime()
+  if (now >= deadline) return 'overdue'
+  const start = new Date(item.assignedAt ?? item.createdAt).getTime()
+  if (deadline <= start) return 'due-soon'
+  return (now - start) / (deadline - start) >= DUE_SOON_THRESHOLD ? 'due-soon' : null
+}
 
 export const WORK_STATUS_LABELS = {
   ASSIGNED: 'Assigned',
