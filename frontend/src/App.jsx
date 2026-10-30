@@ -9,6 +9,7 @@ import IncidentDetail from './pages/IncidentDetail'
 import Incidents from './pages/Incidents'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import Team from './pages/Team'
 import GuestRoute from './routes/GuestRoute'
 import ProtectedRoute from './routes/ProtectedRoute'
 
@@ -41,6 +42,14 @@ export default function App() {
           }
         />
         <Route path="/incidents/:id" element={<IncidentDetail />} />
+        <Route
+          path="/team"
+          element={
+            <ProtectedRoute allowedRoles={['ENGINEER']}>
+              <Team />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/admin/users"
           element={

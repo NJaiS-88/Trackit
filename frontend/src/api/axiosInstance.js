@@ -68,7 +68,13 @@ instance.interceptors.response.use(
     if (!config || !response) return Promise.reject(error)
 
     const path = config.url ?? ''
-    if (response.status === 401 && !config.authRetried && !NO_REFRESH_PATHS.some((p) => path.startsWith(p))) {
+    // 403: the access token may carry a role an admin has since changed; a refresh re-reads it from the database
+    const staleRole = response.status === 403 && response.data?.code !== 'ORIGIN_NOT_ALLOWED'
+    if (
+      (response.status === 401 || staleRole) &&
+      !config.authRetried &&
+      !NO_REFRESH_PATHS.some((p) => path.startsWith(p))
+    ) {
       config.authRetried = true
       try {
         await refreshSession()

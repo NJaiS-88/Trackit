@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: '▦' },
   { to: '/incidents', label: 'Incidents', icon: '☰' },
   { to: '/incidents/new', label: 'New Incident', icon: '＋', roles: ['EMPLOYEE'] },
+  { to: '/team', label: 'My Team', icon: '◉', roles: ['ENGINEER'] },
   { to: '/admin/users', label: 'Admin Users', icon: '◎', roles: ['ADMIN'] },
   { to: '/admin/requests', label: 'Account Requests', icon: '✉', roles: ['ADMIN'] },
   { to: '/admin/departments', label: 'Departments', icon: '▤', roles: ['ADMIN'] },

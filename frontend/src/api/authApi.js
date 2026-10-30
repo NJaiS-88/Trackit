@@ -2,7 +2,7 @@ import axiosInstance from './axiosInstance'
 
 /**
  * @typedef {'EMPLOYEE' | 'ENGINEER' | 'ADMIN'} Role
- * @typedef {{id: string, name: string, email: string, role: Role}} UserSummary
+ * @typedef {{id: string, name: string, email: string, role: Role, departmentName: string | null, projectName: string | null}} UserSummary
  * @typedef {import('./accountRequestApi').AccountRequest} AccountRequest
  */
 

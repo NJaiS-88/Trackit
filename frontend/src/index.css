@@ -625,6 +625,43 @@ textarea.control {
 
 /* ============ Dashboard ============ */
 
+.department-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.15rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.department-card p {
+  margin: 0;
+}
+
+.department-name {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.team-project-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.team-project-form h2,
+.team-project-form p {
+  margin: 0;
+}
+
+.inline-form {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.inline-form .control {
+  flex: 1;
+}
+
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

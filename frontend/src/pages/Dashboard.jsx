@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { getCurrentUser } from '../api/authApi'
 import { parseApiError } from '../api/axiosInstance'
 import { getDashboardSummary, getIncidents } from '../api/incidentApi'
 import IncidentTable from '../components/IncidentTable'
@@ -24,6 +25,33 @@ export default function Dashboard() {
   const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  // Re-read on every visit so a department or project assigned meanwhile shows without signing in again
+  const [profile, setProfile] = useState({
+    loaded: false,
+    departmentName: user.departmentName ?? null,
+    projectName: user.projectName ?? null,
+  })
+  const showDepartment = role !== 'ADMIN'
+
+  useEffect(() => {
+    if (!showDepartment) return undefined
+    let ignore = false
+    getCurrentUser()
+      .then((freshUser) => {
+        if (ignore) return
+        setProfile({
+          loaded: true,
+          departmentName: freshUser.departmentName ?? null,
+          projectName: freshUser.projectName ?? null,
+        })
+      })
+      .catch(() => {
+        if (!ignore) setProfile((prev) => ({ ...prev, loaded: true }))
+      })
+    return () => {
+      ignore = true
+    }
+  }, [showDepartment])
 
   useEffect(() => {
     let ignore = false
@@ -57,6 +85,37 @@ export default function Dashboard() {
           </Link>
         )}
       </div>
+
+      {showDepartment && (
+        <section className="department-card card glass" aria-label="Your department">
+          <span className="stat-label">{role === 'ENGINEER' ? 'Your role' : 'Your department'}</span>
+          {!profile.loaded && !profile.departmentName ? (
+            <p className="text-muted">Loading…</p>
+          ) : role === 'ENGINEER' ? (
+            profile.departmentName ? (
+              <>
+                <p className="department-name">You are the Lead of the {profile.departmentName} department.</p>
+                <p className="text-muted">
+                  Go to <Link to="/team">My Team</Link> to assign projects to your employees.
+                </p>
+              </>
+            ) : (
+              <p className="text-muted">You are a Lead, but you haven&apos;t been assigned to a department yet.</p>
+            )
+          ) : profile.departmentName ? (
+            <>
+              <p className="department-name">You have been assigned to the {profile.departmentName} department.</p>
+              <p className="text-muted">
+                {profile.projectName
+                  ? `Project: ${profile.projectName}`
+                  : "Your Lead hasn't assigned you to a project yet."}
+              </p>
+            </>
+          ) : (
+            <p className="text-muted">You haven&apos;t been assigned to a department yet.</p>
+          )}
+        </section>
+      )}
 
       <section className="stat-grid" aria-label="Incident statistics">
         {STATS.map((stat) => (

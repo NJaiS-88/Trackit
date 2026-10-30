@@ -44,6 +44,9 @@ public class UserService {
         if (newRole == Role.ADMIN) {
             user.setDepartmentId(null);
         }
+        if (newRole != Role.EMPLOYEE) {
+            user.setProjectId(null);
+        }
         return toResponse(userRepository.save(user));
     }
 
@@ -61,6 +64,8 @@ public class UserService {
             throw new ResourceNotFoundException("Department", "id", newDepartmentId);
         }
         user.setDepartmentId(newDepartmentId);
+        // Projects belong to a department, so the old one no longer applies
+        user.setProjectId(null);
         return toResponse(userRepository.save(user));
     }
 
