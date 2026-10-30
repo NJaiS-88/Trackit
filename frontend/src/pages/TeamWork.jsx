@@ -37,10 +37,13 @@ function validateTask(task) {
   const title = task.title.trim()
   if (!title) errors.title = 'Title is required'
   else if (title.length < 3 || title.length > 120) errors.title = 'Title must be between 3 and 120 characters'
-  if (task.description.trim().length > 2000) errors.description = 'Description must be at most 2000 characters'
+  const description = task.description.trim()
+  if (!description) errors.description = 'Description is required'
+  else if (description.length > 2000) errors.description = 'Description must be at most 2000 characters'
+  if (!task.dueDate) errors.dueDate = 'Due date is required'
+  if (!task.dueTime) errors.dueTime = 'Due time is required'
   if (task.dueDate && task.dueDate < todayIso()) errors.dueDate = 'Due date cannot be in the past'
-  else if (task.dueTime && !task.dueDate) errors.dueTime = 'Choose a due date to go with the time'
-  else if (task.dueTime && isPastDeadline(task.dueDate, task.dueTime)) {
+  else if (task.dueDate && task.dueTime && isPastDeadline(task.dueDate, task.dueTime)) {
     errors.dueTime = 'This time has already passed'
   }
   return errors
@@ -152,7 +155,6 @@ export default function TeamWork() {
       ...prev,
       [name]: value,
       ...(name === 'projectId' ? { assigneeIds: [] } : {}),
-      ...(name === 'dueDate' && !value ? { dueTime: '' } : {}),
     }))
     setTaskErrors((prev) => ({ ...prev, [name]: undefined, ...(name === 'dueDate' ? { dueTime: undefined } : {}) }))
   }
@@ -176,9 +178,9 @@ export default function TeamWork() {
         projectId: task.projectId,
         assigneeIds: task.assigneeIds,
         title: task.title.trim(),
-        description: task.description.trim() || null,
-        dueDate: task.dueDate || null,
-        dueTime: (task.dueDate && task.dueTime) || null,
+        description: task.description.trim(),
+        dueDate: task.dueDate,
+        dueTime: task.dueTime,
       })
       setTask(EMPTY_TASK)
       setMessage(`"${task.title.trim()}" assigned to ${namesOf(created.map((w) => w.assigneeId), members)}.`)
@@ -413,7 +415,7 @@ export default function TeamWork() {
                   <div className="span-2">
                     <FormField
                       id="description"
-                      label="Description (optional)"
+                      label="Description"
                       as="textarea"
                       rows={3}
                       maxLength={2000}
@@ -426,7 +428,7 @@ export default function TeamWork() {
 
                   <FormField
                     id="dueDate"
-                    label="Due date (optional)"
+                    label="Due date"
                     type="date"
                     min={todayIso()}
                     value={task.dueDate}
@@ -436,13 +438,11 @@ export default function TeamWork() {
 
                   <FormField
                     id="dueTime"
-                    label="Due time (optional)"
+                    label="Due time"
                     type="time"
                     value={task.dueTime}
                     onChange={handleTaskChange}
                     error={taskErrors.dueTime}
-                    disabled={!task.dueDate}
-                    hint={task.dueDate ? 'Leave empty for end of day' : 'Choose a due date first'}
                   />
 
                   <div className="form-actions span-2">
