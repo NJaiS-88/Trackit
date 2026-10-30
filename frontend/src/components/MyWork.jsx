@@ -190,7 +190,7 @@ export default function MyWork() {
                   </td>
                   <td className="cell-muted">{w.assignedByName ?? '—'}</td>
                   <td className="cell-muted">
-                    <DueDate value={w.dueDate} open />
+                    <DueDate value={w.dueDate} time={w.dueTime} open />
                   </td>
                   <td>
                     <WorkStatusBadge status={w.status} />

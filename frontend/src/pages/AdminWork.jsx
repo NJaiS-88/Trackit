@@ -228,7 +228,7 @@ export default function AdminWork() {
                     )}
                   </td>
                   <td className="cell-muted">
-                    <DueDate value={w.dueDate} open={w.status !== 'COMPLETED'} />
+                    <DueDate value={w.dueDate} time={w.dueTime} open={w.status !== 'COMPLETED'} />
                   </td>
                   <td className="cell-muted">{formatDate(w.updatedAt)}</td>
                 </tr>

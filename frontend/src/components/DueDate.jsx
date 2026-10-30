@@ -1,12 +1,12 @@
-import { formatDay, isPastDay } from '../utils/format'
+import { formatDeadline, isPastDeadline } from '../utils/format'
 
-/** A due date, flagged as overdue while the work is still open. */
-export default function DueDate({ value, open }) {
+/** A deadline (date, optionally with a time), flagged as overdue while the work is still open. */
+export default function DueDate({ value, time, open }) {
   if (!value) return <span className="text-muted">—</span>
-  const overdue = open && isPastDay(value)
+  const overdue = open && isPastDeadline(value, time)
   return (
     <span className={overdue ? 'due-overdue' : undefined} title={overdue ? 'Overdue' : undefined}>
-      {formatDay(value)}
+      {formatDeadline(value, time)}
       {overdue && ' · Overdue'}
     </span>
   )

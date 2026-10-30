@@ -146,6 +146,7 @@ public class WorkItemService {
                         .assignedBy(leadId)
                         .status(WorkItemStatus.ASSIGNED)
                         .dueDate(request.dueDate())
+                        .dueTime(request.dueTime())
                         .createdAt(now)
                         .updatedAt(now)
                         .build())
@@ -245,6 +246,7 @@ public class WorkItemService {
         item.setDeclineReason(null);
         if (request.dueDate() != null) {
             item.setDueDate(request.dueDate());
+            item.setDueTime(null);
         }
         item.setUpdatedAt(Instant.now());
         WorkItem saved = workItemRepository.save(item);
@@ -449,6 +451,7 @@ public class WorkItemService {
                     users.get(w.getAssignedTo()),
                     users.get(w.getAssignedBy()),
                     w.getDueDate(),
+                    w.getDueTime(),
                     w.getDeclineReason(),
                     w.getCreatedAt(),
                     w.getUpdatedAt(),

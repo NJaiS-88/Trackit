@@ -6,6 +6,7 @@ import com.trackit.model.enums.WorkItemType;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 /**
  * A work item with every referenced name resolved. Project fields are set for project tasks;
@@ -28,6 +29,7 @@ public record WorkItemResponse(
         String assigneeName,
         String assignedByName,
         LocalDate dueDate,
+        LocalTime dueTime,
         String declineReason,
         Instant createdAt,
         Instant updatedAt,

@@ -8,7 +8,7 @@ import axiosInstance from './axiosInstance'
  *   departmentId: string, departmentName: string | null, projectId: string | null, projectName: string | null,
  *   incidentId: string | null, incidentNumber: string | null, priority: string | null,
  *   assigneeId: string, assigneeName: string | null, assignedByName: string | null,
- *   dueDate: string | null, declineReason: string | null,
+ *   dueDate: string | null, dueTime: string | null, declineReason: string | null,
  *   createdAt: string, updatedAt: string, completedAt: string | null
  * }} WorkItem
  * @typedef {{workItemId: string, assigneeId: string, name: string | null, status: WorkItemStatus}} TicketAssignee
