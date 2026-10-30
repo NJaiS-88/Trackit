@@ -966,6 +966,75 @@ textarea.control {
   font-weight: 500;
 }
 
+/* ============ Choice cards ============ */
+
+.choice-group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.choice-group legend {
+  padding: 0;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.choice-options {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.choice-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 0.65rem;
+  row-gap: 0.1rem;
+  align-items: start;
+  padding: 0.65rem 0.8rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.choice-option:hover {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+}
+
+.choice-option:has(input:checked) {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+}
+
+.choice-option input {
+  grid-row: span 2;
+  margin: 0.2rem 0 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.choice-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.choice-hint {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.choice-group-invalid .choice-option {
+  border-color: var(--danger);
+}
+
+.choice-group .field-error {
+  margin-top: 0.4rem;
+}
+
 /* ============ Incident detail ============ */
 
 .detail-header {
