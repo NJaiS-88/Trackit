@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { parseApiError } from '../api/axiosInstance'
+import { getAllDepartments } from '../api/departmentApi'
 import { getAllProjects } from '../api/projectApi'
 import Spinner from '../components/Spinner'
 import { PROJECT_STATUS_LABELS, PROJECT_STATUSES } from '../constants/roles'
@@ -27,6 +28,21 @@ export default function AdminProjects() {
   const [departmentFilter, setDepartmentFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [search, setSearch] = useState('')
+  const [allDepartments, setAllDepartments] = useState([])
+
+  useEffect(() => {
+    let ignore = false
+    getAllDepartments()
+      .then((list) => {
+        if (!ignore) setAllDepartments(list)
+      })
+      .catch(() => {
+        // The filter falls back to the departments that appear in the project list
+      })
+    return () => {
+      ignore = true
+    }
+  }, [reloadCount])
 
   useEffect(() => {
     let ignore = false
@@ -47,10 +63,12 @@ export default function AdminProjects() {
   const projects = useMemo(() => result.data ?? [], [result.data])
 
   const departments = useMemo(() => {
-    const byId = new Map()
-    projects.forEach((p) => byId.set(p.departmentId, p.departmentName ?? 'Unknown department'))
+    const byId = new Map(allDepartments.map((d) => [d.id, d.name]))
+    projects.forEach((p) => {
+      if (!byId.has(p.departmentId)) byId.set(p.departmentId, p.departmentName ?? 'Unknown department')
+    })
     return [...byId.entries()].sort((a, b) => a[1].localeCompare(b[1]))
-  }, [projects])
+  }, [allDepartments, projects])
 
   const counts = useMemo(() => {
     const totals = { total: projects.length, ACTIVE: 0, ON_HOLD: 0, COMPLETED: 0 }
