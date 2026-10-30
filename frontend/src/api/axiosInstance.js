@@ -15,45 +15,8 @@ const instance = axios.create({
   timeout: 60000,
 })
 
-const CSRF_HEADER = 'X-XSRF-TOKEN'
-const SAFE_METHODS = new Set(['get', 'head', 'options'])
 // A 401 from these means bad credentials or no session, not an expired access token
-const NO_REFRESH_PATHS = ['/api/auth/csrf', '/api/auth/login', '/api/auth/register', '/api/auth/refresh', '/api/auth/logout']
-
-// ---------- CSRF ----------
-
-// Kept in memory only. The CSRF cookie is on the API's domain, so the token has to come from /api/auth/csrf.
-let csrfToken = null
-let csrfRequest = null
-
-function fetchCsrfToken() {
-  if (!csrfRequest) {
-    csrfRequest = instance
-      .get('/api/auth/csrf')
-      .then(({ data }) => {
-        csrfToken = data.token
-        return csrfToken
-      })
-      .finally(() => {
-        csrfRequest = null
-      })
-  }
-  return csrfRequest
-}
-
-/** The server rotates the CSRF token on login and logout; the next write fetches a fresh one. */
-export function resetCsrfToken() {
-  csrfToken = null
-}
-
-instance.interceptors.request.use(async (config) => {
-  if (!SAFE_METHODS.has(config.method?.toLowerCase())) {
-    config.headers[CSRF_HEADER] = csrfToken ?? (await fetchCsrfToken())
-  }
-  return config
-})
-
-// ---------- Access-token refresh ----------
+const NO_REFRESH_PATHS = ['/api/auth/login', '/api/auth/register', '/api/auth/refresh', '/api/auth/logout']
 
 const REFRESH_LOCK = 'trackit-auth-refresh'
 const REFRESHED_AT_KEY = 'trackit.refreshedAt'
@@ -103,13 +66,6 @@ instance.interceptors.response.use(
   async (error) => {
     const { config, response } = error
     if (!config || !response) return Promise.reject(error)
-
-    if (response.status === 403 && response.data?.code === 'CSRF_TOKEN_INVALID' && !config.csrfRetried) {
-      config.csrfRetried = true
-      csrfToken = null
-      config.headers[CSRF_HEADER] = await fetchCsrfToken()
-      return instance(config)
-    }
 
     const path = config.url ?? ''
     if (response.status === 401 && !config.authRetried && !NO_REFRESH_PATHS.some((p) => path.startsWith(p))) {

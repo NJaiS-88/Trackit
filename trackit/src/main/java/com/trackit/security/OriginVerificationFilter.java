@@ -17,9 +17,10 @@ import java.io.IOException;
 import java.util.Set;
 
 /**
- * CSRF defence in depth: browsers always send {@code Origin} on cross-origin state-changing requests, so any
- * such request from a site outside the CORS allowlist is refused before it reaches the CSRF check.
- * Requests without {@code Origin} (curl, server-to-server) still need a valid CSRF token.
+ * CSRF defence: the auth cookies are {@code SameSite=None}, so the browser attaches them to requests started by
+ * any site. Browsers always send {@code Origin} on cross-origin state-changing requests (forms included), so
+ * any such request from a site outside the CORS allowlist is refused. Requests without {@code Origin} come from
+ * non-browser clients, which cannot borrow a user's cookies.
  */
 @Component
 @RequiredArgsConstructor

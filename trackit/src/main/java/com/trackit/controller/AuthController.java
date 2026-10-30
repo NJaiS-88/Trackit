@@ -1,12 +1,10 @@
 package com.trackit.controller;
 
 import com.trackit.dto.AccountRequestResponse;
-import com.trackit.dto.CsrfTokenResponse;
 import com.trackit.dto.LoginRequest;
 import com.trackit.dto.RegisterRequest;
 import com.trackit.dto.UserSummary;
 import com.trackit.security.AuthCookies;
-import com.trackit.security.CookieCsrfTokenStore;
 import com.trackit.security.CurrentUser;
 import com.trackit.security.JwtService;
 import com.trackit.security.RefreshTokenProperties;
@@ -18,7 +16,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,27 +23,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Tokens travel only in HttpOnly cookies. Every POST here, login included, needs the {@code X-XSRF-TOKEN}
- * header from {@code GET /api/auth/csrf}.
- */
+/** Tokens travel only in HttpOnly cookies; response bodies never contain them. */
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@Tag(name = "Authentication", description = "Cookie-based sessions: CSRF token, login, refresh, logout")
+@Tag(name = "Authentication", description = "Cookie-based sessions: login, refresh, logout")
 public class AuthController {
 
     private final AuthService authService;
     private final AuthCookies authCookies;
-    private final CookieCsrfTokenStore csrfTokenStore;
     private final JwtService jwtService;
     private final RefreshTokenProperties refreshTokenProperties;
-
-    @GetMapping("/csrf")
-    @Operation(summary = "Get a CSRF token to send in the X-XSRF-TOKEN header")
-    public CsrfTokenResponse csrf(CsrfToken csrfToken) {
-        return new CsrfTokenResponse(csrfToken.getHeaderName(), csrfToken.getToken());
-    }
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.ACCEPTED)
@@ -56,13 +43,10 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Log in; sets the access and refresh cookies and rotates the CSRF token")
-    public UserSummary login(@Valid @RequestBody LoginRequest request,
-                             HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+    @Operation(summary = "Log in; sets the access and refresh cookies")
+    public UserSummary login(@Valid @RequestBody LoginRequest request, HttpServletResponse httpResponse) {
         AuthService.Session session = authService.login(request);
         writeSession(session, httpResponse);
-        // A fresh CSRF token after the privilege change; the SPA fetches a new one on its next write
-        csrfTokenStore.saveToken(null, httpRequest, httpResponse);
         return session.user();
     }
 
@@ -80,7 +64,6 @@ public class AuthController {
     public void logout(HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
         authService.logout(authCookies.readRefreshToken(httpRequest).orElse(null));
         authCookies.clearAuthTokens(httpResponse);
-        csrfTokenStore.saveToken(null, httpRequest, httpResponse);
     }
 
     @GetMapping("/me")

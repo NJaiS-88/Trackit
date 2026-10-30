@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as authApi from '../api/authApi'
-import { onSessionEnded, resetCsrfToken } from '../api/axiosInstance'
+import { onSessionEnded } from '../api/axiosInstance'
 import { AuthContext } from './auth-context'
 
 const CHANNEL_NAME = 'trackit-auth'
@@ -14,7 +14,6 @@ export function AuthProvider({ children }) {
   const channelRef = useRef(null)
 
   const endSession = useCallback(() => {
-    resetCsrfToken()
     setState({ status: 'anonymous', user: null })
   }, [])
 
@@ -42,10 +41,7 @@ export function AuthProvider({ children }) {
     channelRef.current = channel
     channel.onmessage = ({ data }) => {
       if (data?.type === 'logout') endSession()
-      if (data?.type === 'login') {
-        resetCsrfToken()
-        setState({ status: 'authenticated', user: data.user })
-      }
+      if (data?.type === 'login') setState({ status: 'authenticated', user: data.user })
     }
     return () => {
       channel.close()
@@ -55,7 +51,6 @@ export function AuthProvider({ children }) {
 
   /** Records the user returned by authApi.login (the cookies are already set). */
   const login = useCallback((user) => {
-    resetCsrfToken()
     setState({ status: 'authenticated', user })
     channelRef.current?.postMessage({ type: 'login', user })
   }, [])

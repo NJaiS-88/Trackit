@@ -75,19 +75,17 @@ Admins review sign-ups under **Account Requests** in the sidebar, and change rol
 |---|---|---|---|
 | `__Host-trackit_at` | Access token: HS256 JWT with user id, role, `iss`, `aud`, `jti` | 10 minutes | Every API request |
 | `__Secure-trackit_rt` | Refresh token: 256-bit random value | 7 days, renewed on each refresh | `/api/auth/*` only |
-| `__Host-trackit_csrf` | CSRF token | Browser session | Every API request |
 
-In production all three are `HttpOnly; Secure; SameSite=None; Partitioned`. `SameSite=None` is required because the frontend (`*.vercel.app`) and API (`*.onrender.com`) are different sites; `Partitioned` keeps the cookies working in browsers that block third-party cookies but support CHIPS (Chrome, Edge, Firefox). Safari blocks third-party cookies outright, so sign-in only works there if the frontend and API share a domain (e.g. `app.example.com` and `api.example.com`).
+In production both are `HttpOnly; Secure; SameSite=None; Partitioned`. `SameSite=None` is required because the frontend (`*.vercel.app`) and API (`*.onrender.com`) are different sites; `Partitioned` keeps the cookies working in browsers that block third-party cookies but support CHIPS (Chrome, Edge, Firefox). Safari blocks third-party cookies outright, so sign-in only works there if the frontend and API share a domain (e.g. `app.example.com` and `api.example.com`).
 
 **Access tokens** are verified without a database lookup. Deactivating a user revokes all their refresh tokens immediately; their current access token stops working within 10 minutes.
 
 **Refresh tokens** live in Redis as SHA-256 hashes (a Redis leak exposes no usable tokens). Every refresh rotates the token atomically (Lua script). Each login starts a token *family*; presenting an already-rotated token means it was copied, so the whole family is revoked. A 20-second grace window covers two tabs refreshing at the same moment. The frontend also serializes refreshes across tabs with the Web Locks API.
 
-**CSRF** is blocked by four independent layers:
-1. **Double-submit token** — every `POST`/`PUT`/`PATCH`/`DELETE` (login included) must send `X-XSRF-TOKEN` matching the CSRF cookie. The SPA gets it from `GET /api/auth/csrf`; tokens are XOR-masked per response (BREACH-safe) and rotated on login and logout.
-2. **Credentialed CORS allowlist** — only origins in `CORS_ALLOWED_ORIGINS` can send the custom header or read any response (so no other site can read the CSRF token). A wildcard is refused at startup.
-3. **Origin check** — state-changing requests whose `Origin` is not allowed are rejected before the CSRF check.
-4. **No state changes on `GET`.**
+**CSRF.** There is no CSRF token. Because the cookies are `SameSite=None`, the browser attaches them to requests started by any site, so cross-site requests are stopped instead by:
+1. **Origin check** — browsers send `Origin` on every cross-origin `POST`/`PUT`/`PATCH`/`DELETE` (HTML form posts included). Any such request whose `Origin` is not in `CORS_ALLOWED_ORIGINS` is rejected with `403 ORIGIN_NOT_ALLOWED` before it reaches a controller.
+2. **Credentialed CORS allowlist** — only those origins may send credentialed `fetch`/XHR requests or read any response. A wildcard is refused at startup.
+3. **No state changes on `GET`.**
 
 **Also:** login rate limiting (5 failures per email per 15 minutes, in Redis), logout revokes the session family and clears all cookies, Spring Security headers (HSTS, `X-Frame-Options: DENY`, nosniff, `Referrer-Policy: no-referrer`, no-store caching), and a strict Content-Security-Policy on the frontend ([`frontend/vercel.json`](frontend/vercel.json)).
 
@@ -114,7 +112,7 @@ Render's outbound IPs are not fixed, so in Atlas → **Network Access** allow `0
    - `JWT_SECRET` is generated automatically.
 3. Wait for the deploy; Render checks `GET /actuator/health`, which also reports DOWN if MongoDB or Redis is unreachable. Note the service URL, e.g. `https://trackit-api.onrender.com`.
 
-Swagger UI is off in production (`API_DOCS_ENABLED=false`). If you enable it: log in through `POST /api/auth/login`, call `GET /api/auth/csrf`, and paste the token into **Authorize** to make write requests.
+Swagger UI is off in production (`API_DOCS_ENABLED=false`). If you enable it, log in through `POST /api/auth/login` in Swagger; the cookies are then sent with every other request.
 
 On the free plan the service sleeps after inactivity; the first request afterwards takes up to a minute.
 
@@ -131,7 +129,6 @@ On the free plan the service sleeps after inactivity; the first request afterwar
 
 | Method | Path | Access |
 |---|---|---|
-| `GET` | `/api/auth/csrf` | Public — CSRF token for the `X-XSRF-TOKEN` header |
 | `POST` | `/api/auth/register` | Public — files an account request (`202`) |
 | `POST` | `/api/auth/login` | Public — sets the session cookies, returns the user |
 | `POST` | `/api/auth/refresh` | Refresh cookie — rotates it and issues a new access token |
@@ -151,4 +148,4 @@ On the free plan the service sleeps after inactivity; the first request afterwar
 | `DELETE` | `/api/incidents/{id}` | Admin (soft delete) |
 | `GET` | `/actuator/health` | Public |
 
-Errors use a consistent shape: `{ timestamp, status, error, message, path, fieldErrors?, code? }`. `code` is set where the client must react: `CSRF_TOKEN_INVALID`, `ORIGIN_NOT_ALLOWED`, `SESSION_EXPIRED`, `CONCURRENT_REFRESH`.
+Errors use a consistent shape: `{ timestamp, status, error, message, path, fieldErrors?, code? }`. `code` is set where the client must react: `ORIGIN_NOT_ALLOWED`, `SESSION_EXPIRED`, `CONCURRENT_REFRESH`.

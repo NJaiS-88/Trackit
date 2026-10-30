@@ -1,6 +1,5 @@
 package com.trackit.controller;
 
-import com.trackit.config.OpenApiConfig;
 import com.trackit.dto.CreateIncidentRequest;
 import com.trackit.dto.DashboardSummaryResponse;
 import com.trackit.dto.IncidentFilterRequest;
@@ -13,7 +12,6 @@ import com.trackit.security.AuthenticatedUser;
 import com.trackit.security.CurrentUser;
 import com.trackit.service.IncidentService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +36,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/incidents")
 @RequiredArgsConstructor
 @Tag(name = "Incidents", description = "Report, browse and manage incidents")
-@SecurityRequirement(name = OpenApiConfig.CSRF_SCHEME)
 public class IncidentController {
 
     private final IncidentService incidentService;

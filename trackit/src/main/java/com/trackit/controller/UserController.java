@@ -1,12 +1,10 @@
 package com.trackit.controller;
 
-import com.trackit.config.OpenApiConfig;
 import com.trackit.dto.UpdateDepartmentRequest;
 import com.trackit.dto.UpdateRoleRequest;
 import com.trackit.dto.UserResponse;
 import com.trackit.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +24,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/admin/users")
 @RequiredArgsConstructor
 @Tag(name = "User management", description = "Admin-only user administration")
-@SecurityRequirement(name = OpenApiConfig.CSRF_SCHEME)
 public class UserController {
 
     private final UserService userService;

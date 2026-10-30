@@ -1,6 +1,5 @@
 package com.trackit.config;
 
-import com.trackit.security.CookieCsrfTokenStore;
 import com.trackit.security.JwtAuthenticationFilter;
 import com.trackit.security.OriginVerificationFilter;
 import com.trackit.security.RestSecurityErrorHandler;
@@ -21,8 +20,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.web.filter.CorsFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -31,7 +30,6 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
 public class SecurityConfig {
 
     private static final String[] PUBLIC_PATHS = {
-            "/api/auth/csrf",
             "/api/auth/login",
             "/api/auth/register",
             "/api/auth/refresh",
@@ -46,14 +44,12 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final OriginVerificationFilter originVerificationFilter;
     private final RestSecurityErrorHandler restSecurityErrorHandler;
-    private final CookieCsrfTokenStore csrfTokenStore;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // Cookie auth needs CSRF protection on every state-changing request, login included.
-                // The default XOR handler masks the token per response (BREACH-safe).
-                .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenStore))
+                // No CSRF token: cross-site writes are refused by OriginVerificationFilter and the CORS allowlist
+                .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .headers(headers -> headers
                         .referrerPolicy(referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
@@ -69,7 +65,7 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(restSecurityErrorHandler)
                         .accessDeniedHandler(restSecurityErrorHandler))
-                .addFilterBefore(originVerificationFilter, CsrfFilter.class)
+                .addFilterAfter(originVerificationFilter, CorsFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

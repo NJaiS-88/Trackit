@@ -1,12 +1,10 @@
 package com.trackit.controller;
 
-import com.trackit.config.OpenApiConfig;
 import com.trackit.dto.CreateDepartmentRequest;
 import com.trackit.dto.DepartmentResponse;
 import com.trackit.security.CurrentUser;
 import com.trackit.service.DepartmentService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +25,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/admin/departments")
 @RequiredArgsConstructor
 @Tag(name = "Departments", description = "Admin management of departments")
-@SecurityRequirement(name = OpenApiConfig.CSRF_SCHEME)
 public class DepartmentController {
 
     private final DepartmentService departmentService;

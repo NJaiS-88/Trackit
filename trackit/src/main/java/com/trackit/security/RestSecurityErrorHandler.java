@@ -11,7 +11,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
-import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -24,7 +23,6 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class RestSecurityErrorHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
 
-    public static final String CSRF_TOKEN_INVALID = "CSRF_TOKEN_INVALID";
     public static final String ORIGIN_NOT_ALLOWED = "ORIGIN_NOT_ALLOWED";
 
     private final ObjectMapper objectMapper;
@@ -41,12 +39,7 @@ public class RestSecurityErrorHandler implements AuthenticationEntryPoint, Acces
     public void handle(HttpServletRequest request,
                        HttpServletResponse response,
                        AccessDeniedException accessDeniedException) throws IOException {
-        if (accessDeniedException instanceof CsrfException) {
-            write(request, response, HttpStatus.FORBIDDEN, "Invalid or missing CSRF token", CSRF_TOKEN_INVALID);
-        } else {
-            write(request, response, HttpStatus.FORBIDDEN,
-                    "You do not have permission to access this resource", null);
-        }
+        write(request, response, HttpStatus.FORBIDDEN, "You do not have permission to access this resource", null);
     }
 
     public void write(HttpServletRequest request, HttpServletResponse response,

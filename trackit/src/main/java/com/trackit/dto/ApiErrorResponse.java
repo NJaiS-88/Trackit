@@ -9,7 +9,7 @@ import java.util.Map;
  * Uniform error body for every failed request.
  *
  * @param fieldErrors per-field validation messages; omitted from JSON when empty
- * @param code        stable machine-readable reason the SPA reacts to (e.g. {@code CSRF_TOKEN_INVALID});
+ * @param code        stable machine-readable reason the SPA reacts to (e.g. {@code SESSION_EXPIRED});
  *                    omitted when absent
  */
 @JsonInclude(JsonInclude.Include.NON_EMPTY)

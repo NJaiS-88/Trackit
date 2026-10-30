@@ -1,12 +1,10 @@
 package com.trackit.controller;
 
-import com.trackit.config.OpenApiConfig;
 import com.trackit.dto.AccountRequestResponse;
 import com.trackit.model.enums.AccountRequestStatus;
 import com.trackit.security.CurrentUser;
 import com.trackit.service.AccountRequestService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -25,7 +23,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/admin/account-requests")
 @RequiredArgsConstructor
 @Tag(name = "Account requests", description = "Admin review of sign-up requests")
-@SecurityRequirement(name = OpenApiConfig.CSRF_SCHEME)
 public class AccountRequestController {
 
     private final AccountRequestService accountRequestService;
