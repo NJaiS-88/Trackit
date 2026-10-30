@@ -68,6 +68,7 @@ public class IncidentService {
     private final MongoTemplate mongoTemplate;
     private final PriorityService priorityService;
     private final WorkItemRepository workItemRepository;
+    private final SlaService slaService;
 
     public IncidentResponse createIncident(CreateIncidentRequest req, String createdByUserId) {
         Instant now = Instant.now();
@@ -81,13 +82,12 @@ public class IncidentService {
                 .urgency(req.urgency())
                 .priority(priorityService.calculatePriority(req.impact(), req.urgency()))
                 .status(IncidentStatus.OPEN)
-                .slaStatus(SlaStatus.NORMAL)
                 .createdBy(createdByUserId)
                 .createdAt(now)
                 .updatedAt(now)
-                .dueAt(null) // TODO(Feature 6): compute from SLA policy for the priority
                 .active(true)
                 .build();
+        slaService.initialize(incident, now);
 
         Incident saved = incidentRepository.save(incident);
         // TODO(Feature 9): auditService.log(INCIDENT_CREATED, saved.getId(), createdByUserId)
@@ -198,9 +198,11 @@ public class IncidentService {
 
         validateTransition(incident.getStatus(), req.newStatus());
         IncidentStatus previousStatus = incident.getStatus();
+        Instant now = Instant.now();
         incident.setPriority(effectivePriority(incident));
         incident.setStatus(req.newStatus());
-        incident.setUpdatedAt(Instant.now());
+        incident.setUpdatedAt(now);
+        slaService.onStatusChange(incident, previousStatus, now);
         Incident saved = incidentRepository.save(incident);
         // TODO(Feature 9): auditService.log(incidentId, actorUserId, STATUS_CHANGED,
         //     previousStatus + " -> " + req.newStatus() + ": " + req.reason())
@@ -296,7 +298,7 @@ public class IncidentService {
                 priority,
                 priority == null ? null : priorityService.getPriorityLabel(priority),
                 incident.getStatus(),
-                incident.getSlaStatus(),
+                slaService.statusAt(incident, Instant.now()),
                 incident.getCreatedBy(),
                 nameOf.apply(incident.getCreatedBy()),
                 incident.getAssignedTo(),
@@ -321,7 +323,8 @@ public class IncidentService {
                 priority,
                 priority == null ? null : priorityService.getPriorityLabel(priority),
                 incident.getStatus(),
-                incident.getSlaStatus(),
+                slaService.statusAt(incident, Instant.now()),
+                incident.getDueAt(),
                 incident.getCreatedAt(),
                 assignedTo == null ? null : assigneeNames.get(assignedTo));
     }

@@ -64,6 +64,7 @@ public class WorkItemService {
     private final IncidentRepository incidentRepository;
     private final MongoTemplate mongoTemplate;
     private final PriorityService priorityService;
+    private final SlaService slaService;
 
     // ---------- Lead ----------
 
@@ -203,8 +204,10 @@ public class WorkItemService {
                 .toList());
 
         // The Lead owns the ticket; the employees do the work
-        if (incident.getStatus() == IncidentStatus.OPEN || incident.getStatus() == IncidentStatus.REOPENED) {
+        IncidentStatus previousStatus = incident.getStatus();
+        if (previousStatus == IncidentStatus.OPEN || previousStatus == IncidentStatus.REOPENED) {
             incident.setStatus(IncidentStatus.ASSIGNED);
+            slaService.onStatusChange(incident, previousStatus, now);
         }
         incident.setAssignedTo(leadId);
         incident.setUpdatedAt(now);
@@ -311,8 +314,11 @@ public class WorkItemService {
                 .filter(Incident::isActive)
                 .filter(incident -> from.contains(incident.getStatus()))
                 .ifPresent(incident -> {
+                    IncidentStatus previousStatus = incident.getStatus();
+                    Instant now = Instant.now();
                     incident.setStatus(to);
-                    incident.setUpdatedAt(Instant.now());
+                    incident.setUpdatedAt(now);
+                    slaService.onStatusChange(incident, previousStatus, now);
                     incidentRepository.save(incident);
                 });
     }

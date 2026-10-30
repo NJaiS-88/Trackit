@@ -15,6 +15,7 @@ public record IncidentSummaryResponse(
         String priorityLabel,
         IncidentStatus status,
         SlaStatus slaStatus,
+        Instant dueAt,
         Instant createdAt,
         String assignedToName
 ) {
