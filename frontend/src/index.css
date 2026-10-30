@@ -662,6 +662,102 @@ textarea.control {
   flex: 1;
 }
 
+/* ============ Work items ============ */
+
+.section-header .section-meta {
+  font-size: 0.85rem;
+}
+
+.section .stat-grid + .alert,
+.section-alert {
+  margin-top: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.cell-title {
+  font-weight: 500;
+}
+
+.cell-sub {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.cell-description {
+  max-width: 420px;
+  margin-top: 0.35rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  white-space: normal;
+}
+
+.decline-reason {
+  max-width: 260px;
+  margin-top: 0.3rem;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--muted);
+  white-space: normal;
+}
+
+.due-overdue {
+  color: var(--danger);
+  font-weight: 500;
+}
+
+.assignee-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.decline-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  border-left: 3px solid var(--danger);
+}
+
+.decline-panel h3,
+.decline-panel p {
+  margin: 0;
+}
+
+.decline-panel .form-actions {
+  margin-top: 0;
+}
+
+.history-toggle {
+  margin: 0.75rem 0;
+}
+
+.task-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 90px;
+  font-size: 0.82rem;
+}
+
+.task-progress-bar {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.task-progress-bar span {
+  display: block;
+  height: 100%;
+  background: var(--success);
+}
+
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

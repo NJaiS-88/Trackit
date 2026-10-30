@@ -5,6 +5,7 @@ import com.trackit.model.Department;
 import com.trackit.model.Incident;
 import com.trackit.model.Project;
 import com.trackit.model.User;
+import com.trackit.model.WorkItem;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Configuration;
@@ -51,5 +52,11 @@ public class MongoConfig {
                 .unique());
 
         mongoTemplate.indexOps(User.class).ensureIndex(new Index().on("departmentId", Sort.Direction.ASC));
+
+        IndexOperations workItems = mongoTemplate.indexOps(WorkItem.class);
+        workItems.ensureIndex(new Index().on("departmentId", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC));
+        workItems.ensureIndex(new Index().on("assignedTo", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC));
+        workItems.ensureIndex(new Index().on("incidentId", Sort.Direction.ASC));
+        workItems.ensureIndex(new Index().on("projectId", Sort.Direction.ASC));
     }
 }

@@ -25,6 +25,8 @@ public interface UserRepository extends MongoRepository<User, String> {
 
     List<User> findByDepartmentIdAndRoleAndActiveTrueOrderByNameAsc(String departmentId, Role role);
 
+    List<User> findByDepartmentId(String departmentId);
+
     List<User> findByDepartmentIdInAndRoleAndActiveTrueOrderByNameAsc(Collection<String> departmentIds, Role role);
 
     List<User> findByProjectIdInAndRoleAndActiveTrueOrderByNameAsc(Collection<String> projectIds, Role role);

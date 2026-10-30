@@ -5,10 +5,13 @@ import com.trackit.model.Department;
 import com.trackit.model.Project;
 import com.trackit.model.Role;
 import com.trackit.model.User;
+import com.trackit.model.WorkItem;
 import com.trackit.model.enums.ProjectStatus;
+import com.trackit.model.enums.WorkItemStatus;
 import com.trackit.repository.DepartmentRepository;
 import com.trackit.repository.ProjectRepository;
 import com.trackit.repository.UserRepository;
+import com.trackit.repository.WorkItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +31,7 @@ public class ProjectOverviewService {
     private final ProjectRepository projectRepository;
     private final DepartmentRepository departmentRepository;
     private final UserRepository userRepository;
+    private final WorkItemRepository workItemRepository;
 
     public List<AdminProjectResponse> getProjects() {
         List<Project> projects = projectRepository.findAll();
@@ -54,6 +58,13 @@ public class ProjectOverviewService {
                 .collect(Collectors.groupingBy(User::getProjectId,
                         Collectors.mapping(User::getName, Collectors.toList())));
 
+        List<WorkItem> tasks = workItemRepository.findByProjectIdIn(projectIds);
+        Map<String, Long> taskCounts = tasks.stream()
+                .collect(Collectors.groupingBy(WorkItem::getProjectId, Collectors.counting()));
+        Map<String, Long> completedCounts = tasks.stream()
+                .filter(w -> w.getStatus() == WorkItemStatus.COMPLETED)
+                .collect(Collectors.groupingBy(WorkItem::getProjectId, Collectors.counting()));
+
         return projects.stream()
                 .map(p -> new AdminProjectResponse(
                         p.getId(),
@@ -63,6 +74,8 @@ public class ProjectOverviewService {
                         departmentNames.get(p.getDepartmentId()),
                         leadsByDepartment.getOrDefault(p.getDepartmentId(), List.of()),
                         employeesByProject.getOrDefault(p.getId(), List.of()),
+                        taskCounts.getOrDefault(p.getId(), 0L),
+                        completedCounts.getOrDefault(p.getId(), 0L),
                         p.getCreatedAt()))
                 .sorted(Comparator
                         .comparing((AdminProjectResponse r) -> r.departmentName() == null ? "" : r.departmentName(),

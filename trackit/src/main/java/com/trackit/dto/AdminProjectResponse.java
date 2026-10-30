@@ -17,6 +17,8 @@ public record AdminProjectResponse(
         String departmentName,
         List<String> leads,
         List<String> employees,
+        long taskCount,
+        long completedTaskCount,
         Instant createdAt
 ) {
 }

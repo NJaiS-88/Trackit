@@ -6,7 +6,7 @@ import Spinner from '../components/Spinner'
 import { PROJECT_STATUS_LABELS, PROJECT_STATUSES } from '../constants/roles'
 import { formatDate } from '../utils/format'
 
-const COLUMN_COUNT = 6
+const COLUMN_COUNT = 7
 
 const STATUS_BADGE_CLASS = {
   ACTIVE: 'status-in_progress',
@@ -177,6 +177,7 @@ export default function AdminProjects() {
                 <th>Department</th>
                 <th>Lead</th>
                 <th>Assigned employees</th>
+                <th>Tasks</th>
                 <th>Status</th>
                 <th>Created</th>
               </tr>
@@ -214,6 +215,20 @@ export default function AdminProjects() {
                       </div>
                     ) : (
                       <span className="text-muted">None</span>
+                    )}
+                  </td>
+                  <td>
+                    {p.taskCount > 0 ? (
+                      <div className="task-progress" title={`${p.completedTaskCount} of ${p.taskCount} tasks completed`}>
+                        <span>
+                          {p.completedTaskCount}/{p.taskCount} done
+                        </span>
+                        <span className="task-progress-bar" aria-hidden="true">
+                          <span style={{ width: `${(p.completedTaskCount / p.taskCount) * 100}%` }} />
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-muted">No tasks</span>
                     )}
                   </td>
                   <td>
