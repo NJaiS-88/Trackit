@@ -20,7 +20,8 @@ import {
   countByStatus,
   workSource,
 } from '../constants/work'
-import { formatDate, isPastDeadline, todayIso } from '../utils/format'
+import Timestamp from '../components/Timestamp'
+import { isPastDeadline, todayIso } from '../utils/format'
 
 const EMPTY_TASK = { projectId: '', assigneeIds: [], title: '', description: '', dueDate: '', dueTime: '' }
 const REASSIGNABLE = new Set(['ASSIGNED', 'DECLINED'])
@@ -270,6 +271,7 @@ export default function TeamWork() {
                     <th>Ticket</th>
                     <th>Priority</th>
                     <th>Reported by</th>
+                    <th>Raised</th>
                     <th>Ticket status</th>
                     <th>Handled by</th>
                   </tr>
@@ -277,7 +279,7 @@ export default function TeamWork() {
                 <tbody>
                   {tickets.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="table-empty">
+                      <td colSpan={6} className="table-empty">
                         No open tickets in your department.
                       </td>
                     </tr>
@@ -286,14 +288,15 @@ export default function TeamWork() {
                     <tr key={t.id}>
                       <td>
                         <div className="cell-title">{t.title}</div>
-                        <div className="cell-sub">
-                          {t.incidentNumber} · {formatDate(t.createdAt)}
-                        </div>
+                        <div className="cell-sub">{t.incidentNumber}</div>
                       </td>
                       <td>
                         <PriorityBadge priority={t.priority} label={t.priorityLabel} />
                       </td>
                       <td className="cell-muted">{t.reporterName ?? '—'}</td>
+                      <td className="cell-muted">
+                        <Timestamp value={t.createdAt} />
+                      </td>
                       <td>
                         <StatusBadge status={t.status} />
                       </td>
@@ -506,6 +509,7 @@ export default function TeamWork() {
                   <tr>
                     <th>Work</th>
                     <th>Assigned to</th>
+                    <th>Assigned</th>
                     <th>Status</th>
                     <th>Due</th>
                     <th>Updated</th>
@@ -515,7 +519,7 @@ export default function TeamWork() {
                 <tbody>
                   {visibleWork.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="table-empty">
+                      <td colSpan={7} className="table-empty">
                         {work.length === 0 ? 'No work assigned yet.' : 'No work matches these filters.'}
                       </td>
                     </tr>
@@ -531,6 +535,9 @@ export default function TeamWork() {
                           </div>
                         </td>
                         <td>{w.assigneeName ?? '—'}</td>
+                        <td className="cell-muted">
+                          <Timestamp value={w.assignedAt} />
+                        </td>
                         <td>
                           <WorkStatusBadge status={w.status} />
                           {w.status === 'DECLINED' && w.declineReason && (
@@ -540,7 +547,9 @@ export default function TeamWork() {
                         <td className="cell-muted">
                           <DueDate item={w} now={now} />
                         </td>
-                        <td className="cell-muted">{formatDate(w.updatedAt)}</td>
+                        <td className="cell-muted">
+                          <Timestamp value={w.updatedAt} />
+                        </td>
                         <td className="cell-actions">
                           {REASSIGNABLE.has(w.status) && (
                             <div className="action-group">

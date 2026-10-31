@@ -18,6 +18,17 @@ export function deadlineState(item, now = Date.now()) {
   return (now - start) / (deadline - start) >= DUE_SOON_THRESHOLD ? 'due-soon' : null
 }
 
+const ACTIVE = new Set(['ASSIGNED', 'IN_PROGRESS'])
+
+/** Work still to be done that is overdue or has used 80% of its time, overdue first. */
+export function urgentWork(items, now) {
+  return items
+    .filter((w) => ACTIVE.has(w.status))
+    .map((w) => ({ item: w, state: deadlineState(w, now) }))
+    .filter((entry) => entry.state)
+    .sort((a, b) => (a.state === b.state ? 0 : a.state === 'overdue' ? -1 : 1))
+}
+
 export const WORK_STATUS_LABELS = {
   ASSIGNED: 'Assigned',
   IN_PROGRESS: 'In Progress',

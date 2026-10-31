@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { getMyWork } from '../api/workApi'
+import { urgentWork } from '../constants/work'
 import { useNow } from '../hooks/useNow'
-import { urgentWork } from './DeadlineAlert'
 
 const REFRESH_MS = 5 * 60_000
 

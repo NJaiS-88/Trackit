@@ -9,6 +9,13 @@ export function formatDate(value) {
   return value ? dateFormatter.format(new Date(value)) : '—'
 }
 
+const exactTimeFormatter = new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' })
+
+/** Time of day with seconds, e.g. "5:30:12 PM". */
+export function formatTime(value) {
+  return value ? exactTimeFormatter.format(new Date(value)) : '—'
+}
+
 /** For calendar dates without a time ("2026-11-05"), which `new Date` would read as UTC midnight. */
 export function formatDay(value) {
   if (!value) return '—'

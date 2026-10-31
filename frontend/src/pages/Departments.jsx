@@ -4,7 +4,7 @@ import { createDepartment, getDepartments } from '../api/departmentApi'
 import FormField from '../components/FormField'
 import Pagination from '../components/Pagination'
 import Spinner from '../components/Spinner'
-import { formatDate } from '../utils/format'
+import Timestamp from '../components/Timestamp'
 import { validateDepartment } from '../utils/validation'
 
 const PAGE_SIZE = 20
@@ -174,7 +174,9 @@ export default function Departments() {
                   <tr key={d.id}>
                     <td>{d.name}</td>
                     <td className="cell-muted">{d.description ?? '—'}</td>
-                    <td className="cell-muted">{formatDate(d.createdAt)}</td>
+                    <td className="cell-muted">
+                      <Timestamp value={d.createdAt} />
+                    </td>
                   </tr>
                 ))}
               </tbody>

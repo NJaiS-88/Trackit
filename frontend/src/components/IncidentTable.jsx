@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom'
 import { CATEGORY_LABELS } from '../constants/incident'
-import { formatDateTime } from '../utils/format'
 import PriorityBadge from './PriorityBadge'
 import Spinner from './Spinner'
 import StatusBadge from './StatusBadge'
+import Timestamp from './Timestamp'
 
 const COLUMN_COUNT = 6
 
@@ -66,7 +66,9 @@ export default function IncidentTable({ incidents, loading, onRowClick, emptyMes
               <td>
                 <StatusBadge status={incident.status} />
               </td>
-              <td className="cell-muted">{formatDateTime(incident.createdAt)}</td>
+              <td className="cell-muted">
+                <Timestamp value={incident.createdAt} />
+              </td>
             </tr>
           ))}
         </tbody>

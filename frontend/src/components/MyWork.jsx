@@ -3,7 +3,7 @@ import { parseApiError } from '../api/axiosInstance'
 import { completeWork, declineWork, getMyWork, startWork } from '../api/workApi'
 import { WORK_TYPE_LABELS, deadlineState, workSource } from '../constants/work'
 import { useNow } from '../hooks/useNow'
-import { formatDate } from '../utils/format'
+import Timestamp from './Timestamp'
 import DeadlineAlert from './DeadlineAlert'
 import DueDate from './DueDate'
 import PriorityBadge from './PriorityBadge'
@@ -156,6 +156,7 @@ export default function MyWork() {
             <tr>
               <th>Work</th>
               <th>Assigned by</th>
+              <th>Assigned</th>
               <th>Due</th>
               <th>Status</th>
               <th aria-label="Actions" />
@@ -164,14 +165,14 @@ export default function MyWork() {
           <tbody>
             {loading && !result.data && (
               <tr>
-                <td colSpan={5} className="table-empty">
+                <td colSpan={6} className="table-empty">
                   <Spinner size={20} label="Loading your work" />
                 </td>
               </tr>
             )}
             {result.data && openItems.length === 0 && (
               <tr>
-                <td colSpan={5} className="table-empty">
+                <td colSpan={6} className="table-empty">
                   You&apos;re all caught up. No open work assigned to you.
                 </td>
               </tr>
@@ -195,6 +196,9 @@ export default function MyWork() {
                     {w.description && <div className="cell-description">{w.description}</div>}
                   </td>
                   <td className="cell-muted">{w.assignedByName ?? '—'}</td>
+                  <td className="cell-muted">
+                    <Timestamp value={w.assignedAt} />
+                  </td>
                   <td className="cell-muted">
                     <DueDate item={w} now={now} />
                   </td>
@@ -270,7 +274,9 @@ export default function MyWork() {
                     <WorkStatusBadge status={w.status} />
                   </td>
                   <td className="cell-muted">{w.declineReason ?? '—'}</td>
-                  <td className="cell-muted">{formatDate(w.completedAt ?? w.updatedAt)}</td>
+                  <td className="cell-muted">
+                    <Timestamp value={w.completedAt ?? w.updatedAt} />
+                  </td>
                 </tr>
               ))}
             </tbody>

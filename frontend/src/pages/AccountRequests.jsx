@@ -4,7 +4,7 @@ import { parseApiError } from '../api/axiosInstance'
 import Pagination from '../components/Pagination'
 import Spinner from '../components/Spinner'
 import { ACCOUNT_REQUEST_STATUS_LABELS, ACCOUNT_REQUEST_STATUSES } from '../constants/roles'
-import { formatDate } from '../utils/format'
+import Timestamp from '../components/Timestamp'
 
 const PAGE_SIZE = 20
 const COLUMN_COUNT = 6
@@ -175,8 +175,12 @@ export default function AccountRequests() {
                         {ACCOUNT_REQUEST_STATUS_LABELS[r.status]}
                       </span>
                     </td>
-                    <td className="cell-muted">{formatDate(r.createdAt)}</td>
-                    <td className="cell-muted">{r.reviewedAt ? formatDate(r.reviewedAt) : '—'}</td>
+                    <td className="cell-muted">
+                      <Timestamp value={r.createdAt} />
+                    </td>
+                    <td className="cell-muted">
+                      <Timestamp value={r.reviewedAt} />
+                    </td>
                     <td className="cell-actions">
                       {r.status === 'PENDING' && (
                         <div className="action-group">

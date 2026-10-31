@@ -4,7 +4,7 @@ import { getAllDepartments } from '../api/departmentApi'
 import { getAllProjects } from '../api/projectApi'
 import Spinner from '../components/Spinner'
 import { PROJECT_STATUS_LABELS, PROJECT_STATUSES } from '../constants/roles'
-import { formatDate } from '../utils/format'
+import Timestamp from '../components/Timestamp'
 
 const COLUMN_COUNT = 7
 
@@ -234,7 +234,9 @@ export default function AdminProjects() {
                   <td>
                     <span className={`badge ${STATUS_BADGE_CLASS[p.status]}`}>{PROJECT_STATUS_LABELS[p.status]}</span>
                   </td>
-                  <td className="cell-muted">{formatDate(p.createdAt)}</td>
+                  <td className="cell-muted">
+                    <Timestamp value={p.createdAt} />
+                  </td>
                 </tr>
               ))}
             </tbody>

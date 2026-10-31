@@ -16,9 +16,9 @@ import {
   countByStatus,
   workSource,
 } from '../constants/work'
-import { formatDate } from '../utils/format'
+import Timestamp from '../components/Timestamp'
 
-const COLUMN_COUNT = 7
+const COLUMN_COUNT = 8
 
 export default function AdminWork() {
   const now = useNow()
@@ -184,6 +184,7 @@ export default function AdminWork() {
                 <th>Department</th>
                 <th>Assigned to</th>
                 <th>Assigned by</th>
+                <th>Assigned</th>
                 <th>Status</th>
                 <th>Due</th>
                 <th>Updated</th>
@@ -223,6 +224,9 @@ export default function AdminWork() {
                   <td className="cell-muted">{w.departmentName ?? '—'}</td>
                   <td>{w.assigneeName ?? '—'}</td>
                   <td className="cell-muted">{w.assignedByName ?? '—'}</td>
+                  <td className="cell-muted">
+                    <Timestamp value={w.assignedAt} />
+                  </td>
                   <td>
                     <WorkStatusBadge status={w.status} />
                     {w.status === 'DECLINED' && w.declineReason && (
@@ -232,7 +236,9 @@ export default function AdminWork() {
                   <td className="cell-muted">
                     <DueDate item={w} now={now} />
                   </td>
-                  <td className="cell-muted">{formatDate(w.updatedAt)}</td>
+                  <td className="cell-muted">
+                    <Timestamp value={w.updatedAt} />
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -6,7 +6,7 @@ import Pagination from '../components/Pagination'
 import Spinner from '../components/Spinner'
 import { ROLE_LABELS, ROLES } from '../constants/roles'
 import { useAuth } from '../hooks/useAuth'
-import { formatDate } from '../utils/format'
+import Timestamp from '../components/Timestamp'
 
 const PAGE_SIZE = 20
 const COLUMN_COUNT = 7
@@ -224,7 +224,9 @@ export default function AdminUsers() {
                         {u.active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="cell-muted">{formatDate(u.createdAt)}</td>
+                    <td className="cell-muted">
+                      <Timestamp value={u.createdAt} />
+                    </td>
                     <td className="cell-actions">
                       <button
                         type="button"

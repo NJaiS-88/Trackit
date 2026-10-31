@@ -790,6 +790,17 @@ textarea.control {
   white-space: normal;
 }
 
+.timestamp {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.timestamp-time {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
 /* Deadlines: "due soon" once 80% of the time since assignment is used, "overdue" after the deadline */
 
 .due-date {

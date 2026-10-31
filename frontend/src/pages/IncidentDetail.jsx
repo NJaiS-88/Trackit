@@ -5,9 +5,9 @@ import { changeStatus, getIncidentById } from '../api/incidentApi'
 import PriorityBadge from '../components/PriorityBadge'
 import Spinner from '../components/Spinner'
 import StatusBadge from '../components/StatusBadge'
+import Timestamp from '../components/Timestamp'
 import WorkStatusBadge from '../components/WorkStatusBadge'
 import { CATEGORY_LABELS, impactAnswer, LEVEL_LABELS, STATUS_LABELS, urgencyAnswer } from '../constants/incident'
-import { formatDateTime } from '../utils/format'
 import { useAuth } from '../hooks/useAuth'
 
 const ERROR_MESSAGES = {
@@ -147,7 +147,8 @@ export default function IncidentDetail() {
       value: `${urgencyAnswer(incident.urgency)} (${LEVEL_LABELS[incident.urgency] ?? incident.urgency} urgency)`,
     },
     { label: 'Priority', value: <PriorityBadge priority={incident.priority} label={incident.priorityLabel} /> },
-    { label: 'Created At', value: formatDateTime(incident.createdAt) },
+    { label: 'Created At', value: <Timestamp value={incident.createdAt} /> },
+    { label: 'Last Updated', value: <Timestamp value={incident.updatedAt} /> },
   ]
   const canChangeStatus = role === 'ENGINEER' || role === 'ADMIN'
   const allowedTransitions = ALLOWED_TRANSITIONS[incident.status] ?? []
