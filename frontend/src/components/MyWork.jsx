@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { parseApiError } from '../api/axiosInstance'
 import { completeWork, declineWork, getMyWork, startWork } from '../api/workApi'
 import { WORK_TYPE_LABELS, deadlineState, workSource } from '../constants/work'
@@ -197,6 +198,11 @@ export default function MyWork() {
                     </div>
                     {w.description && <div className="cell-description">{w.description}</div>}
                     <AttachmentList attachments={w.attachments} />
+                    {w.type === 'TICKET' && w.incidentId && (
+                      <div className="cell-sub">
+                        <Link to={`/incidents/${w.incidentId}`}>Open ticket &amp; messages →</Link>
+                      </div>
+                    )}
                   </td>
                   <td className="cell-muted">{w.assignedByName ?? '—'}</td>
                   <td className="cell-muted">

@@ -5,6 +5,7 @@ import { changeStatus, getIncidentById } from '../api/incidentApi'
 import PriorityBadge from '../components/PriorityBadge'
 import Spinner from '../components/Spinner'
 import StatusBadge from '../components/StatusBadge'
+import TicketChat from '../components/TicketChat'
 import Timestamp from '../components/Timestamp'
 import WorkStatusBadge from '../components/WorkStatusBadge'
 import { CATEGORY_LABELS, impactAnswer, LEVEL_LABELS, STATUS_LABELS, urgencyAnswer } from '../constants/incident'
@@ -235,10 +236,7 @@ export default function IncidentDetail() {
         )
       )}
 
-      <section className="card glass placeholder">
-        <h2>Comments</h2>
-        <p className="text-muted">Coming soon</p>
-      </section>
+      <TicketChat incidentId={incident.id} />
     </div>
   )
 }
