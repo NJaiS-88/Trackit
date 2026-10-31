@@ -25,6 +25,9 @@ class HealthResponse(BaseModel):
     status: Literal["ok"]
     model: str
     llm_configured: bool
+    # OpenRouter model used for ticket routing, and whether its key is set
+    routing_model: str
+    routing_configured: bool
 
 
 # Must match Trackit's Category, Impact and Urgency enums

@@ -28,7 +28,13 @@ if settings.cors_origins:
 @app.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     current = get_settings()
-    return HealthResponse(status="ok", model=current.gemini_model, llm_configured=bool(current.google_api_key))
+    return HealthResponse(
+        status="ok",
+        model=current.gemini_model,
+        llm_configured=bool(current.google_api_key),
+        routing_model=current.openrouter_model,
+        routing_configured=bool(current.openrouter_api_key),
+    )
 
 
 api = APIRouter(prefix="/api", dependencies=[Depends(require_service_token)])

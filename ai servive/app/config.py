@@ -16,6 +16,14 @@ class Settings(BaseSettings):
     gemini_temperature: float = Field(default=0.2, ge=0.0, le=2.0, alias="GEMINI_TEMPERATURE")
     gemini_timeout_seconds: float = Field(default=60.0, gt=0, alias="GEMINI_TIMEOUT_SECONDS")
 
+    # OpenRouter (https://openrouter.ai/keys) serves the model that recommends which department handles a ticket
+    openrouter_api_key: str = Field(default="", alias="OPENROUTER_API_KEY")
+    openrouter_model: str = Field(default="typesafe/jev-router", alias="OPENROUTER_MODEL")
+    openrouter_base_url: str = Field(default="https://openrouter.ai/api/v1", alias="OPENROUTER_BASE_URL")
+    # Routing should be consistent for the same ticket, so default to no randomness
+    openrouter_temperature: float = Field(default=0.0, ge=0.0, le=2.0, alias="OPENROUTER_TEMPERATURE")
+    openrouter_timeout_seconds: float = Field(default=30.0, gt=0, alias="OPENROUTER_TIMEOUT_SECONDS")
+
     # When set, every /api request must send it in the X-Service-Token header (the Spring backend does)
     service_token: str = Field(default="", alias="SERVICE_TOKEN")
     # Comma-separated origins allowed to call the service from a browser; empty means none
