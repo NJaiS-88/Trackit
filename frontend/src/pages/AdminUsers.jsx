@@ -135,7 +135,7 @@ export default function AdminUsers() {
           onClick={() => setReloadCount((count) => count + 1)}
           disabled={loading}
         >
-          ↻ Refresh
+          Refresh
         </button>
       </div>
 

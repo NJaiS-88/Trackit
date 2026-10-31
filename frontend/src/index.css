@@ -497,11 +497,6 @@ textarea.control {
   color: var(--primary);
 }
 
-.nav-icon {
-  width: 1.2rem;
-  text-align: center;
-}
-
 .sidebar-logout {
   width: 100%;
   margin-top: 1rem;
@@ -579,6 +574,12 @@ textarea.control {
 
 .navbar-user-name {
   font-weight: 500;
+}
+
+.navbar-employee-id {
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.78rem;
+  color: var(--muted);
 }
 
 .avatar {

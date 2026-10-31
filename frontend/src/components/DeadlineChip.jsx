@@ -45,7 +45,7 @@ export default function DeadlineChip() {
       className={`deadline-chip ${overdue > 0 ? 'deadline-chip-overdue' : 'deadline-chip-soon'}`}
       title="Work with a deadline coming up — open your dashboard"
     >
-      <span aria-hidden="true">⏰</span> {label}
+      {label}
     </Link>
   )
 }

@@ -21,7 +21,6 @@ export default function RoutingSuggestion({ recommendation }) {
       title={`Suggested by ${model ?? 'AI'} on ${formatDateTime(generatedAt)}`}
     >
       <div className="routing-suggestion-head">
-        <span aria-hidden="true">🤖</span>
         {stay ? (
           <span>
             AI: keep in your department · <span className="routing-confidence">{confidenceLabel}</span>

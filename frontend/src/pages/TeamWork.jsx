@@ -288,7 +288,7 @@ export default function TeamWork() {
           </p>
         </div>
         <button type="button" className="btn btn-ghost" onClick={reload} disabled={loading}>
-          ↻ Refresh
+          Refresh
         </button>
       </div>
 
@@ -389,8 +389,8 @@ export default function TeamWork() {
                             {pendingIds.has(`${t.id}:ai`)
                               ? 'Asking AI…'
                               : t.routingRecommendation
-                                ? '↻ Re-run AI'
-                                : '🤖 Ask AI'}
+                                ? 'Re-run AI'
+                                : 'Ask AI'}
                           </button>
                           {passingId !== t.id && (
                             <button

@@ -60,7 +60,7 @@ export default function TeamAnalytics() {
             onClick={() => setReloadCount((count) => count + 1)}
             disabled={loading}
           >
-            ↻ Refresh
+            Refresh
           </button>
         </div>
       </div>

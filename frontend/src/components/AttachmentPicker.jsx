@@ -72,7 +72,7 @@ export default function AttachmentPicker({ files, onChange, disabled }) {
           onClick={() => fileInputRef.current?.click()}
           disabled={disabled || files.length >= MAX_ATTACHMENTS}
         >
-          ＋ Add files
+          Add files
         </button>
         <button
           type="button"
@@ -80,7 +80,7 @@ export default function AttachmentPicker({ files, onChange, disabled }) {
           onClick={() => folderInputRef.current?.click()}
           disabled={disabled || files.length >= MAX_ATTACHMENTS}
         >
-          ＋ Add folder
+          Add folder
         </button>
         <span className="field-hint">Up to {MAX_ATTACHMENTS} files, 10 MB each</span>
       </div>

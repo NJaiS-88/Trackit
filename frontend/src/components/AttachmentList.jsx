@@ -3,7 +3,7 @@ import { parseApiError } from '../api/axiosInstance'
 import { downloadAttachment } from '../api/workApi'
 import { formatBytes } from '../utils/format'
 
-/** "📎 N files" toggle that expands into the downloadable reference files attached to a piece of work. */
+/** "N files" toggle that expands into the downloadable reference files attached to a piece of work. */
 export default function AttachmentList({ attachments }) {
   const [open, setOpen] = useState(false)
   const [pendingId, setPendingId] = useState(null)
@@ -33,7 +33,7 @@ export default function AttachmentList({ attachments }) {
         aria-expanded={open}
         aria-controls={listId}
       >
-        <span aria-hidden="true">📎</span> {attachments.length} {attachments.length === 1 ? 'file' : 'files'}
+        {attachments.length} {attachments.length === 1 ? 'file' : 'files'}
         <span className={`attachment-caret${open ? ' attachment-caret-open' : ''}`} aria-hidden="true">
           ▾
         </span>

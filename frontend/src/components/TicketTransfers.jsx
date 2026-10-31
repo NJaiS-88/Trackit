@@ -5,7 +5,7 @@ export function PassedFrom({ transfer }) {
   if (!transfer) return null
   return (
     <div className="passed-from" title={transfer.note ?? undefined}>
-      <span aria-hidden="true">↪</span> Passed from <strong>{transfer.fromDepartmentName ?? 'another department'}</strong>
+      Passed from <strong>{transfer.fromDepartmentName ?? 'another department'}</strong>
       {transfer.passedByName && <> by {transfer.passedByName}</>}
       {transfer.note && <span className="passed-from-note">“{transfer.note}”</span>}
     </div>
