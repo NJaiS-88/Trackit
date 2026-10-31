@@ -52,6 +52,8 @@ class TicketRoutingServiceTest {
     private AiServiceClient aiServiceClient;
     @Mock
     private MongoTemplate mongoTemplate;
+    @Mock
+    private TicketDepartments ticketDepartments;
 
     private TicketRoutingService service;
 
@@ -71,20 +73,19 @@ class TicketRoutingServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TicketRoutingService(
-                incidentRepository, departmentRepository, userRepository, aiServiceClient, mongoTemplate);
+        service = new TicketRoutingService(incidentRepository, departmentRepository, userRepository,
+                aiServiceClient, mongoTemplate, ticketDepartments);
     }
 
-    private void reporterInDepartment(String departmentId) {
-        when(userRepository.findById("emp-1"))
-                .thenReturn(Optional.of(User.builder().id("emp-1").departmentId(departmentId).build()));
+    private void handledBy(String departmentId) {
+        when(ticketDepartments.handlingDepartmentId(ticket)).thenReturn(departmentId);
     }
 
     @Test
     void savesTheRecommendationOnTheTicket() {
         when(incidentRepository.findById("inc-1")).thenReturn(Optional.of(ticket));
         when(departmentRepository.findAll(any(Sort.class))).thenReturn(departments);
-        reporterInDepartment("dep-it");
+        handledBy("dep-it");
         when(aiServiceClient.routeTicket(any())).thenReturn(new TicketRoute(
                 "dep-fin", "Finance", "HIGH", "Payroll report in the finance portal.", false, "typesafe/jev-router"));
 
@@ -108,7 +109,7 @@ class TicketRoutingServiceTest {
     void sendsTheTicketAndEveryDepartmentWithItsDescription() {
         when(incidentRepository.findById("inc-1")).thenReturn(Optional.of(ticket));
         when(departmentRepository.findAll(any(Sort.class))).thenReturn(departments);
-        reporterInDepartment("dep-it");
+        handledBy("dep-it");
         when(aiServiceClient.routeTicket(any()))
                 .thenReturn(new TicketRoute("dep-it", "IT Support", "LOW", "Closest fit.", true, "m"));
 
@@ -154,7 +155,7 @@ class TicketRoutingServiceTest {
                 .thenReturn(Optional.of(User.builder().id("lead-1").departmentId("dep-it").build()));
         when(incidentRepository.findById("inc-1")).thenReturn(Optional.of(ticket));
         when(departmentRepository.findAll(any(Sort.class))).thenReturn(departments);
-        reporterInDepartment("dep-it");
+        handledBy("dep-it");
         when(aiServiceClient.routeTicket(any()))
                 .thenReturn(new TicketRoute("dep-fin", "Finance", "HIGH", "Payroll.", false, "m"));
 
@@ -166,7 +167,7 @@ class TicketRoutingServiceTest {
         when(userRepository.findById("lead-2"))
                 .thenReturn(Optional.of(User.builder().id("lead-2").departmentId("dep-fin").build()));
         when(incidentRepository.findById("inc-1")).thenReturn(Optional.of(ticket));
-        reporterInDepartment("dep-it");
+        handledBy("dep-it");
 
         assertThatThrownBy(() -> service.recommendForLead("lead-2", "inc-1"))
                 .isInstanceOf(UnauthorizedException.class);
@@ -177,7 +178,7 @@ class TicketRoutingServiceTest {
     void aiFailureSavesNothing() {
         when(incidentRepository.findById("inc-1")).thenReturn(Optional.of(ticket));
         when(departmentRepository.findAll(any(Sort.class))).thenReturn(departments);
-        reporterInDepartment("dep-it");
+        handledBy("dep-it");
         when(aiServiceClient.routeTicket(any())).thenThrow(new AiServiceUnavailableException("unavailable"));
 
         assertThatThrownBy(() -> service.recommend("inc-1")).isInstanceOf(AiServiceUnavailableException.class);

@@ -45,6 +45,7 @@ public class TicketRoutingService {
     private final UserRepository userRepository;
     private final AiServiceClient aiServiceClient;
     private final MongoTemplate mongoTemplate;
+    private final TicketDepartments ticketDepartments;
 
     /**
      * Generates and saves a fresh recommendation for the ticket.
@@ -62,7 +63,7 @@ public class TicketRoutingService {
             throw new WorkflowViolationException("There are no departments to route tickets to yet");
         }
 
-        String currentDepartmentId = currentDepartmentId(incident);
+        String currentDepartmentId = ticketDepartments.handlingDepartmentId(incident);
         TicketRoute route = aiServiceClient.routeTicket(new TicketRouteRequest(
                 incident.getTitle(),
                 incident.getDescription(),
@@ -104,7 +105,7 @@ public class TicketRoutingService {
         Incident incident = incidentRepository.findById(incidentId)
                 .filter(Incident::isActive)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", incidentId));
-        if (!leadDepartmentId.equals(currentDepartmentId(incident))) {
+        if (!leadDepartmentId.equals(ticketDepartments.handlingDepartmentId(incident))) {
             throw new UnauthorizedException("This ticket is not handled by your department");
         }
         return recommend(incidentId);
@@ -123,10 +124,5 @@ public class TicketRoutingService {
         } catch (RuntimeException e) {
             log.warn("Routing recommendation failed for ticket {}", incidentId, e);
         }
-    }
-
-    /** The department handling the ticket now: the reporter's department. */
-    private String currentDepartmentId(Incident incident) {
-        return userRepository.findById(incident.getCreatedBy()).map(User::getDepartmentId).orElse(null);
     }
 }
