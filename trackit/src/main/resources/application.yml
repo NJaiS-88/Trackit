@@ -63,6 +63,11 @@ trackit:
       p4: 5d
     # "Due soon" once this share of the target time is left
     due-soon-percent: 20
+  ai:
+    # Trackit AI service (FastAPI + Gemini), e.g. https://trackit-ai.onrender.com
+    base-url: ${AI_SERVICE_URL:http://localhost:8000}
+    # Must match the AI service's SERVICE_TOKEN; leave empty only if that is empty too (local dev)
+    service-token: ${AI_SERVICE_TOKEN:}
 
 management:
   endpoints:
