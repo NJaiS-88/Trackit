@@ -1407,7 +1407,19 @@ textarea.control {
   white-space: normal;
 }
 
-/* Lead's Department tickets: share the page width instead of scrolling sideways */
+/*
+ * Lead's Department tickets: on large screens the columns share the page width with no scrollbar; once the card
+ * is narrower than the table's minimum width (smaller laptops, tablets, phones) the card scrolls sideways instead
+ * of crushing the columns.
+ */
+.table-card.tickets-table {
+  overflow-x: auto;
+}
+
+.tickets-table .data-table {
+  min-width: 1040px;
+}
+
 .tickets-table .col-ticket {
   width: 22%;
 }
