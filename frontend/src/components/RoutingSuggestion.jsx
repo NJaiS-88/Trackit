@@ -12,7 +12,7 @@ const CONFIDENCE_LABELS = {
  */
 export default function RoutingSuggestion({ recommendation }) {
   if (!recommendation) return null
-  const { departmentName, confidence, reason, stay, model, generatedAt } = recommendation
+  const { departmentName, confidence, reason, stay, model, generatedAt, handoffNote } = recommendation
   const confidenceLabel = CONFIDENCE_LABELS[confidence] ?? confidence
 
   return (
@@ -33,6 +33,12 @@ export default function RoutingSuggestion({ recommendation }) {
         )}
       </div>
       {reason && <p className="routing-reason">{reason}</p>}
+      {!stay && handoffNote && (
+        <div className="routing-handoff">
+          <span className="routing-handoff-label">AI-written note for the {departmentName} Lead</span>
+          <p>{handoffNote}</p>
+        </div>
+      )}
     </div>
   )
 }

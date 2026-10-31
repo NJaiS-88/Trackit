@@ -860,6 +860,25 @@ textarea.control {
   font-size: 0.78rem;
 }
 
+.routing-handoff {
+  margin-top: 0.35rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid var(--border);
+  font-size: 0.78rem;
+}
+
+.routing-handoff-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.routing-handoff p {
+  margin: 0.15rem 0 0;
+  white-space: pre-line;
+}
+
 /* How a passed ticket reached this Lead, and the ticket page's routing history */
 
 .passed-from {
@@ -975,6 +994,13 @@ textarea.control {
 .pass-panel-hint {
   margin: -0.2rem 0 0;
   font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.pass-panel-ai-tag {
+  margin-left: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 400;
   color: var(--muted);
 }
 
