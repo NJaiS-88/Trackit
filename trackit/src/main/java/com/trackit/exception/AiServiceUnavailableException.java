@@ -6,4 +6,9 @@ public class AiServiceUnavailableException extends RuntimeException {
     public AiServiceUnavailableException() {
         super("The AI assistant is unavailable right now. Please fill in the form yourself or try again later.");
     }
+
+    /** For features where filling in a form isn't the fallback, e.g. ticket routing. */
+    public AiServiceUnavailableException(String message) {
+        super(message);
+    }
 }

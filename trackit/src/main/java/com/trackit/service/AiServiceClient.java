@@ -13,6 +13,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 import java.net.http.HttpClient;
+import java.util.List;
 import java.util.Map;
 
 /** HTTP client for the Trackit AI service. The Gemini key stays there; this side only sends the service token. */
@@ -30,6 +31,38 @@ public class AiServiceClient {
             String urgency
     ) {
     }
+
+    /** A department the routing model may choose; {@code description} says what it handles (may be null). */
+    public record RoutingDepartment(String id, String name, String description) {
+    }
+
+    /** Matches the AI service's TicketRouteRequest (snake_case on the wire). */
+    public record TicketRouteRequest(
+            String title,
+            String description,
+            String category,
+            @JsonProperty("affected_service") String affectedService,
+            @JsonProperty("current_department_id") String currentDepartmentId,
+            List<RoutingDepartment> departments
+    ) {
+    }
+
+    /**
+     * The model's recommendation; {@code departmentId} is always one of the departments sent.
+     * {@code confidence} is HIGH, MEDIUM or LOW; {@code stay} means it recommends the current department.
+     */
+    public record TicketRoute(
+            @JsonProperty("department_id") String departmentId,
+            @JsonProperty("department_name") String departmentName,
+            String confidence,
+            String reason,
+            boolean stay,
+            String model
+    ) {
+    }
+
+    static final String ROUTING_UNAVAILABLE =
+            "The AI routing assistant is unavailable right now. You can still pass the ticket yourself.";
 
     private final RestClient restClient;
 
@@ -69,6 +102,32 @@ public class AiServiceClient {
             // Connection refused, timeout or unreadable body
             log.warn("AI service unreachable for an incident draft: {}", e.getMessage());
             throw new AiServiceUnavailableException();
+        }
+    }
+
+    /**
+     * Asks the routing model which department should handle a ticket. Only a recommendation: a Lead decides.
+     *
+     * @throws AiServiceUnavailableException if the service is unreachable, slow, rejects the token or the model fails
+     */
+    public TicketRoute routeTicket(TicketRouteRequest request) {
+        try {
+            TicketRoute route = restClient.post()
+                    .uri("/api/tickets/route")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(request)
+                    .retrieve()
+                    .body(TicketRoute.class);
+            if (route == null || !StringUtils.hasText(route.departmentId())) {
+                throw new AiServiceUnavailableException(ROUTING_UNAVAILABLE);
+            }
+            return route;
+        } catch (RestClientResponseException e) {
+            log.warn("AI service answered {} to a ticket route: {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new AiServiceUnavailableException(ROUTING_UNAVAILABLE);
+        } catch (RestClientException e) {
+            log.warn("AI service unreachable for a ticket route: {}", e.getMessage());
+            throw new AiServiceUnavailableException(ROUTING_UNAVAILABLE);
         }
     }
 }
