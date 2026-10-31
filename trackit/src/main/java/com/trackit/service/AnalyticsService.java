@@ -7,6 +7,7 @@ import com.trackit.dto.AnalyticsResponse.PeopleStats;
 import com.trackit.dto.AnalyticsResponse.ProjectStats;
 import com.trackit.dto.AnalyticsResponse.TrendPoint;
 import com.trackit.dto.AnalyticsResponse.WorkStats;
+import com.trackit.exception.ResourceNotFoundException;
 import com.trackit.model.Department;
 import com.trackit.model.Incident;
 import com.trackit.model.Project;
@@ -63,24 +64,45 @@ public class AnalyticsService {
     private final PriorityService priorityService;
     private final SlaService slaService;
 
-    /** {@code zone} decides where "a day" starts, for the range and the trend buckets. */
-    public AnalyticsResponse getAnalytics(int rangeDays, ZoneId zone) {
+    /**
+     * {@code zone} decides where "a day" starts, for the range and the trend buckets. {@code departmentId} limits
+     * everything to one department (its people, the tickets they raised, its work and projects); null means all.
+     */
+    public AnalyticsResponse getAnalytics(int rangeDays, ZoneId zone, String departmentId) {
+        Department selected = departmentId == null
+                ? null
+                : departmentRepository.findById(departmentId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Department", "id", departmentId));
+
         Instant now = Instant.now();
         LocalDate firstDay = LocalDate.now(zone).minusDays(rangeDays - 1L);
         Instant from = firstDay.atStartOfDay(zone).toInstant();
 
-        List<User> users = userRepository.findAll();
-        Map<String, User> usersById = users.stream().collect(Collectors.toMap(User::getId, Function.identity()));
-        List<Incident> incidents = incidentRepository.findAll().stream().filter(Incident::isActive).toList();
-        Map<String, Incident> incidentsById = incidents.stream()
+        List<User> allUsers = userRepository.findAll();
+        Map<String, User> usersById = allUsers.stream().collect(Collectors.toMap(User::getId, Function.identity()));
+        List<Incident> allIncidents = incidentRepository.findAll().stream().filter(Incident::isActive).toList();
+        Map<String, Incident> incidentsById = allIncidents.stream()
                 .collect(Collectors.toMap(Incident::getId, Function.identity()));
-        List<WorkItem> work = workItemRepository.findAll();
-        List<Project> projects = projectRepository.findAll();
+
+        Predicate<String> inScope = id -> selected == null || selected.getId().equals(id);
+        List<User> users = allUsers.stream().filter(u -> inScope.test(u.getDepartmentId())).toList();
+        List<Incident> incidents = allIncidents.stream()
+                .filter(i -> selected == null || inScope.test(departmentOfReporter(i, usersById)))
+                .toList();
+        List<WorkItem> work = workItemRepository.findAll().stream()
+                .filter(w -> inScope.test(w.getDepartmentId()))
+                .toList();
+        List<Project> projects = projectRepository.findAll().stream()
+                .filter(p -> inScope.test(p.getDepartmentId()))
+                .toList();
+        List<Department> departments = selected == null ? departmentRepository.findAll() : List.of(selected);
 
         Predicate<WorkItem> overdue = w -> isOpen(w) && isPast(deadlineOf(w, incidentsById, zone), now);
 
         return new AnalyticsResponse(
                 rangeDays,
+                selected == null ? null : selected.getId(),
+                selected == null ? null : selected.getName(),
                 now,
                 incidentStats(incidents, from, now),
                 trend(incidents, firstDay, rangeDays, zone),
@@ -90,7 +112,13 @@ public class AnalyticsService {
                         countProjects(projects, ProjectStatus.ON_HOLD),
                         countProjects(projects, ProjectStatus.COMPLETED)),
                 peopleStats(users),
-                departmentStats(users, usersById, incidents, work, projects, from, overdue, incidentsById, zone));
+                departmentStats(departments, users, usersById, incidents, work, projects, from, overdue,
+                        incidentsById, zone));
+    }
+
+    private static String departmentOfReporter(Incident incident, Map<String, User> usersById) {
+        User reporter = usersById.get(incident.getCreatedBy());
+        return reporter == null ? null : reporter.getDepartmentId();
     }
 
     private IncidentStats incidentStats(List<Incident> incidents, Instant from, Instant now) {
@@ -171,11 +199,12 @@ public class AnalyticsService {
                 accountRequestRepository.countByStatus(AccountRequestStatus.PENDING));
     }
 
-    private List<DepartmentStats> departmentStats(List<User> users, Map<String, User> usersById,
-                                                  List<Incident> incidents, List<WorkItem> work,
-                                                  List<Project> projects, Instant from, Predicate<WorkItem> overdue,
-                                                  Map<String, Incident> incidentsById, ZoneId zone) {
-        return departmentRepository.findAll().stream()
+    private List<DepartmentStats> departmentStats(List<Department> departments, List<User> users,
+                                                  Map<String, User> usersById, List<Incident> incidents,
+                                                  List<WorkItem> work, List<Project> projects, Instant from,
+                                                  Predicate<WorkItem> overdue, Map<String, Incident> incidentsById,
+                                                  ZoneId zone) {
+        return departments.stream()
                 .sorted(Comparator.comparing(Department::getName, String.CASE_INSENSITIVE_ORDER))
                 .map(department -> {
                     String id = department.getId();

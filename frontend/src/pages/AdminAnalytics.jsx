@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getAnalytics } from '../api/analyticsApi'
 import { parseApiError } from '../api/axiosInstance'
+import { getAllDepartments } from '../api/departmentApi'
 import Spinner from '../components/Spinner'
 import Timestamp from '../components/Timestamp'
 import { PRIORITIES, PRIORITY_LABELS } from '../constants/incident'
@@ -101,14 +102,30 @@ function TrendChart({ points }) {
 
 export default function AdminAnalytics() {
   const [days, setDays] = useState(30)
+  const [departmentId, setDepartmentId] = useState('')
+  const [departments, setDepartments] = useState([])
   const [reloadCount, setReloadCount] = useState(0)
   // `key` records which request a result belongs to; a mismatch means a fetch is in flight
   const [result, setResult] = useState({ key: null, data: null, error: null })
-  const requestKey = `${days}:${reloadCount}`
+  const requestKey = `${days}:${departmentId}:${reloadCount}`
 
   useEffect(() => {
     let ignore = false
-    getAnalytics(days)
+    getAllDepartments()
+      .then((list) => {
+        if (!ignore) setDepartments(list)
+      })
+      .catch(() => {
+        // The selector then only offers "All departments"; the analytics themselves still load
+      })
+    return () => {
+      ignore = true
+    }
+  }, [reloadCount])
+
+  useEffect(() => {
+    let ignore = false
+    getAnalytics(days, departmentId || undefined)
       .then((data) => {
         if (!ignore) setResult({ key: requestKey, data, error: null })
       })
@@ -118,20 +135,39 @@ export default function AdminAnalytics() {
     return () => {
       ignore = true
     }
-  }, [requestKey, days])
+  }, [requestKey, days, departmentId])
 
   const loading = result.key !== requestKey
   const data = result.data
   const rangeLabel = `last ${days} days`
+  const scoped = Boolean(data?.departmentId)
 
   return (
     <div className="page">
       <div className="page-header">
         <div>
           <h1>Analytics</h1>
-          <p className="text-muted">Incident, SLA and delivery performance across the organisation.</p>
+          <p className="text-muted">
+            {scoped
+              ? `Incident, SLA and delivery performance for the ${data.departmentName} department.`
+              : 'Incident, SLA and delivery performance across the organisation.'}
+          </p>
         </div>
         <div className="analytics-controls">
+          <select
+            className="control analytics-department"
+            value={departmentId}
+            onChange={(event) => setDepartmentId(event.target.value)}
+            disabled={loading}
+            aria-label="Department"
+          >
+            <option value="">All departments</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
           <div className="segmented" role="group" aria-label="Time range">
             {RANGES.map((range) => (
               <button
@@ -211,13 +247,22 @@ export default function AdminAnalytics() {
               }
               tone={rateTone(data.work.onTimePercent)}
             />
-            <Kpi
-              label="Pending account requests"
-              value={data.people.pendingRequests}
-              detail={data.people.pendingRequests > 0 ? 'Awaiting your approval' : 'Nothing to review'}
-              tone={data.people.pendingRequests > 0 ? 'kpi-warn' : ''}
-              to="/admin/requests"
-            />
+            {scoped ? (
+              <Kpi
+                label="Active projects"
+                value={data.projects.active}
+                detail={`${data.projects.onHold} on hold · ${data.projects.completed} completed`}
+                to="/admin/projects"
+              />
+            ) : (
+              <Kpi
+                label="Pending account requests"
+                value={data.people.pendingRequests}
+                detail={data.people.pendingRequests > 0 ? 'Awaiting your approval' : 'Nothing to review'}
+                tone={data.people.pendingRequests > 0 ? 'kpi-warn' : ''}
+                to="/admin/requests"
+              />
+            )}
           </section>
 
           <section className="card glass analytics-card">
@@ -260,7 +305,7 @@ export default function AdminAnalytics() {
 
             <section className="card glass analytics-card">
               <div className="analytics-card-header">
-                <h2>Organisation</h2>
+                <h2>{scoped ? data.departmentName : 'Organisation'}</h2>
               </div>
               <dl className="org-summary">
                 <div>
@@ -273,17 +318,20 @@ export default function AdminAnalytics() {
                 <div>
                   <dt>People</dt>
                   <dd>
-                    {data.people.employees} employees · {data.people.leads} Leads · {data.people.admins} admins
+                    {data.people.employees} employees · {data.people.leads} Leads
+                    {!scoped && ` · ${data.people.admins} admins`}
                   </dd>
                 </div>
                 <div>
                   <dt>Inactive accounts</dt>
                   <dd>{data.people.inactive}</dd>
                 </div>
-                <div>
-                  <dt>Departments</dt>
-                  <dd>{data.departments.length}</dd>
-                </div>
+                {!scoped && (
+                  <div>
+                    <dt>Departments</dt>
+                    <dd>{data.departments.length}</dd>
+                  </div>
+                )}
               </dl>
             </section>
           </div>
