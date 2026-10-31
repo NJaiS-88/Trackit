@@ -85,6 +85,8 @@ public class IncidentService {
                 .priority(priorityService.calculatePriority(req.impact(), req.urgency()))
                 .status(IncidentStatus.OPEN)
                 .createdBy(createdByUserId)
+                // Starts with the reporter's own department's Lead, who can pass it on
+                .handlingDepartmentId(userRepository.findById(createdByUserId).map(User::getDepartmentId).orElse(null))
                 .createdAt(now)
                 .updatedAt(now)
                 .active(true)

@@ -56,6 +56,12 @@ public class Incident {
     /** User id of the reporter. */
     private String createdBy;
 
+    /**
+     * Department whose Lead handles the ticket: the reporter's when raised, then whichever department a Lead passes
+     * it to. Null on tickets raised before this existed; read it through {@code TicketDepartments}.
+     */
+    private String handlingDepartmentId;
+
     /** User id of the assigned engineer; null until assigned. */
     private String assignedTo;
 
