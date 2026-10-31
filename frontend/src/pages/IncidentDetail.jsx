@@ -235,16 +235,10 @@ export default function IncidentDetail() {
         )
       )}
 
-      <div className="detail-columns">
-        <section className="card glass placeholder">
-          <h2>Comments</h2>
-          <p className="text-muted">Coming soon</p>
-        </section>
-        <section className="card glass placeholder">
-          <h2>Timeline</h2>
-          <p className="text-muted">Coming soon</p>
-        </section>
-      </div>
+      <section className="card glass placeholder">
+        <h2>Comments</h2>
+        <p className="text-muted">Coming soon</p>
+      </section>
     </div>
   )
 }

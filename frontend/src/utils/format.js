@@ -44,6 +44,11 @@ export function formatDay(value) {
 
 const timeFormatter = new Intl.DateTimeFormat(undefined, { timeStyle: 'short' })
 
+/** Time of day without seconds, e.g. "5:30 PM". */
+export function formatShortTime(value) {
+  return value ? timeFormatter.format(new Date(value)) : '—'
+}
+
 /** A deadline as a local Date: the given time ("17:30") on that day, or the end of the day without one. */
 export function deadlineOf(date, time) {
   const [year, month, day] = date.split('-').map(Number)

@@ -89,9 +89,7 @@ public class IncidentService {
                 .build();
         slaService.initialize(incident, now);
 
-        Incident saved = incidentRepository.save(incident);
-        // TODO(Feature 9): auditService.log(INCIDENT_CREATED, saved.getId(), createdByUserId)
-        return toResponse(saved);
+        return toResponse(incidentRepository.save(incident));
     }
 
     public IncidentResponse getIncidentById(String id, String requestingUserId, Role role) {
@@ -182,8 +180,6 @@ public class IncidentService {
         }
         incident.setPriority(effectivePriority(incident));
         incident.setUpdatedAt(Instant.now());
-
-        // TODO(Feature 9): auditService.log(INCIDENT_UPDATED, incident.getId(), userId)
         return toResponse(incidentRepository.save(incident));
     }
 
@@ -201,10 +197,7 @@ public class IncidentService {
         incident.setStatus(req.newStatus());
         incident.setUpdatedAt(now);
         slaService.onStatusChange(incident, previousStatus, now);
-        Incident saved = incidentRepository.save(incident);
-        // TODO(Feature 9): auditService.log(incidentId, actorUserId, STATUS_CHANGED,
-        //     previousStatus + " -> " + req.newStatus() + ": " + req.reason())
-        return toResponse(saved);
+        return toResponse(incidentRepository.save(incident));
     }
 
     public void deleteIncident(String id, Role role) {
@@ -215,7 +208,6 @@ public class IncidentService {
         incident.setActive(false);
         incident.setUpdatedAt(Instant.now());
         incidentRepository.save(incident);
-        // TODO(Feature 9): auditService.log(INCIDENT_DELETED, incident.getId(), adminId)
     }
 
     private Incident findActiveIncident(String id) {

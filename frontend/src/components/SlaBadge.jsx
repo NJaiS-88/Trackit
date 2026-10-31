@@ -1,4 +1,4 @@
-import { formatDateTime, formatDuration } from '../utils/format'
+import { formatDate, formatDuration, formatShortTime } from '../utils/format'
 
 /** Incident statuses in which the SLA clock is not running. */
 const CLOCK_STOPPED = new Set(['ON_HOLD', 'RESOLVED', 'CLOSED'])
@@ -40,9 +40,14 @@ export default function SlaBadge({ dueAt, slaStatus, status, now }) {
 
   return (
     <span className={`due-date ${className}`}>
-      {formatDateTime(dueAt)}
-      {flag && <span className="due-flag">{flag}</span>}
-      {detail && <span className="sla-detail">{detail}</span>}
+      <span>{formatDate(dueAt)}</span>
+      <span className="due-time">{formatShortTime(dueAt)}</span>
+      {(flag || detail) && (
+        <span className="due-meta">
+          {flag && <span className="due-flag">{flag}</span>}
+          {detail && <span className="sla-detail">{detail}</span>}
+        </span>
+      )}
     </span>
   )
 }
