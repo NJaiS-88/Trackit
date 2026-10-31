@@ -30,6 +30,9 @@ public record IncidentResponse(
         Instant updatedAt,
         Instant dueAt,
         // Employees a Lead assigned to fix it, and their progress; empty until assigned
-        List<TicketAssigneeResponse> workAssignees
+        List<TicketAssigneeResponse> workAssignees,
+        // Department whose Lead handles the ticket now, and every pass between departments, oldest first
+        String handlingDepartmentName,
+        List<TicketTransferResponse> transfers
 ) {
 }

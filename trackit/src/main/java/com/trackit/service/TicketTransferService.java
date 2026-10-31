@@ -25,11 +25,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.Instant;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /** A Lead passes a ticket their department handles to another department, whose Lead then handles it. */
 @Service
@@ -45,6 +49,60 @@ public class TicketTransferService {
     private final TicketTransferRepository ticketTransferRepository;
     private final TicketDepartments ticketDepartments;
     private final TicketRoutingService ticketRoutingService;
+
+    /** Every time the ticket was passed between departments, oldest first. */
+    public List<TicketTransferResponse> history(String incidentId) {
+        return toResponses(ticketTransferRepository.findByIncidentIdOrderByCreatedAtAsc(incidentId));
+    }
+
+    /** Each ticket's most recent pass, keyed by ticket id; tickets never passed are absent. */
+    public Map<String, TicketTransferResponse> latestByTicket(Collection<String> incidentIds) {
+        if (incidentIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, TicketTransfer> latest = new LinkedHashMap<>();
+        // Newest first, so the first one seen per ticket is its latest pass
+        ticketTransferRepository.findByIncidentIdInOrderByCreatedAtDesc(incidentIds)
+                .forEach(t -> latest.putIfAbsent(t.getIncidentId(), t));
+        List<TicketTransferResponse> responses = toResponses(List.copyOf(latest.values()));
+        Map<String, TicketTransferResponse> byTicket = new LinkedHashMap<>();
+        int index = 0;
+        for (String incidentId : latest.keySet()) {
+            byTicket.put(incidentId, responses.get(index++));
+        }
+        return byTicket;
+    }
+
+    /** Resolves department and Lead names with one query each. */
+    private List<TicketTransferResponse> toResponses(List<TicketTransfer> transfers) {
+        if (transfers.isEmpty()) {
+            return List.of();
+        }
+        Set<String> departmentIds = transfers.stream()
+                .flatMap(t -> Stream.of(t.getFromDepartmentId(), t.getToDepartmentId()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<String, String> departmentNames = departmentRepository.findAllById(departmentIds).stream()
+                .collect(Collectors.toMap(Department::getId, Department::getName));
+        Set<String> leadIds = transfers.stream()
+                .map(TicketTransfer::getPassedBy)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<String, String> leadNames = userRepository.findAllById(leadIds).stream()
+                .collect(Collectors.toMap(User::getId, User::getName));
+        return transfers.stream()
+                .map(t -> new TicketTransferResponse(
+                        t.getId(),
+                        t.getFromDepartmentId(),
+                        t.getFromDepartmentId() == null ? null : departmentNames.get(t.getFromDepartmentId()),
+                        t.getToDepartmentId(),
+                        departmentNames.get(t.getToDepartmentId()),
+                        leadNames.get(t.getPassedBy()),
+                        t.getNote(),
+                        t.isFollowedRecommendation(),
+                        t.getCreatedAt()))
+                .toList();
+    }
 
     /** Every department, A to Z, with its Leads, so a Lead can see who would receive a ticket. */
     public List<DepartmentOptionResponse> departmentOptions(String leadId) {

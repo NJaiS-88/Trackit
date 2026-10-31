@@ -14,6 +14,7 @@ import com.trackit.exception.ResourceNotFoundException;
 import com.trackit.exception.UnauthorizedException;
 import com.trackit.exception.WorkflowViolationException;
 import com.trackit.model.Counter;
+import com.trackit.model.Department;
 import com.trackit.model.Incident;
 import com.trackit.model.Role;
 import com.trackit.model.User;
@@ -24,6 +25,7 @@ import com.trackit.model.enums.Priority;
 import com.trackit.model.enums.SlaStatus;
 import com.trackit.model.enums.Urgency;
 import com.trackit.model.enums.WorkItemStatus;
+import com.trackit.repository.DepartmentRepository;
 import com.trackit.repository.IncidentRepository;
 import com.trackit.repository.UserRepository;
 import com.trackit.repository.WorkItemRepository;
@@ -73,6 +75,8 @@ public class IncidentService {
     private final SlaService slaService;
     private final TicketRoutingService ticketRoutingService;
     private final TicketDepartments ticketDepartments;
+    private final TicketTransferService ticketTransferService;
+    private final DepartmentRepository departmentRepository;
 
     public IncidentResponse createIncident(CreateIncidentRequest req, String createdByUserId) {
         Instant now = Instant.now();
@@ -358,7 +362,16 @@ public class IncidentService {
                 work.stream()
                         .map(w -> new TicketAssigneeResponse(
                                 w.getId(), w.getAssignedTo(), nameOf.apply(w.getAssignedTo()), w.getStatus()))
-                        .toList());
+                        .toList(),
+                handlingDepartmentName(incident),
+                incident.getId() == null ? List.of() : ticketTransferService.history(incident.getId()));
+    }
+
+    private String handlingDepartmentName(Incident incident) {
+        String departmentId = ticketDepartments.handlingDepartmentId(incident);
+        return departmentId == null
+                ? null
+                : departmentRepository.findById(departmentId).map(Department::getName).orElse(null);
     }
 
     private IncidentSummaryResponse toSummary(Incident incident, Map<String, String> assigneeNames) {

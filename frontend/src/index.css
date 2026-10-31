@@ -859,6 +859,79 @@ textarea.control {
   font-size: 0.78rem;
 }
 
+/* How a passed ticket reached this Lead, and the ticket page's routing history */
+
+.passed-from {
+  max-width: 340px;
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: #92400e;
+  white-space: normal;
+}
+
+.passed-from-note {
+  display: block;
+  margin-top: 0.1rem;
+  font-style: italic;
+  color: var(--muted);
+}
+
+.transfer-history {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin: 0;
+  padding: 0 0 0 1rem;
+  border-left: 2px solid var(--border);
+  list-style: none;
+}
+
+.transfer-history li {
+  position: relative;
+}
+
+.transfer-history li::before {
+  content: '';
+  position: absolute;
+  top: 0.4rem;
+  left: calc(-1rem - 5px);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.transfer-history-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.transfer-ai-tag {
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.transfer-history-note {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--muted);
+}
+
+.transfer-history-time {
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
 .ticket-routing-actions {
   display: flex;
   flex-wrap: wrap;
