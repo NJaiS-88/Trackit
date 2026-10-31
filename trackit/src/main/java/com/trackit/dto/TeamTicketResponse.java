@@ -25,6 +25,8 @@ public record TeamTicketResponse(
         String reporterName,
         Instant createdAt,
         List<TicketAssigneeResponse> assignees,
-        RoutingRecommendationResponse routingRecommendation
+        RoutingRecommendationResponse routingRecommendation,
+        // The most recent pass between departments, e.g. how it reached this Lead; null if never passed
+        TicketTransferResponse lastTransfer
 ) {
 }

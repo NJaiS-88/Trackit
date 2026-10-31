@@ -3,6 +3,7 @@ package com.trackit.service;
 import com.trackit.dto.AssignTicketRequest;
 import com.trackit.dto.AttachmentResponse;
 import com.trackit.dto.RoutingRecommendationResponse;
+import com.trackit.dto.TicketTransferResponse;
 import com.trackit.dto.AssignWorkRequest;
 import com.trackit.dto.CreateTaskRequest;
 import com.trackit.dto.TeamTicketResponse;
@@ -70,6 +71,7 @@ public class WorkItemService {
     private final SlaService slaService;
     private final AttachmentService attachmentService;
     private final TicketDepartments ticketDepartments;
+    private final TicketTransferService ticketTransferService;
 
     // ---------- Lead ----------
 
@@ -118,6 +120,8 @@ public class WorkItemService {
                 .collect(Collectors.groupingBy(WorkItem::getIncidentId));
         Map<String, String> assigneeNames = userNames(workByIncident.values().stream()
                 .flatMap(List::stream).map(WorkItem::getAssignedTo));
+        Map<String, TicketTransferResponse> lastTransfers =
+                ticketTransferService.latestByTicket(incidents.stream().map(Incident::getId).toList());
 
         Instant now = Instant.now();
         return incidents.stream().map(incident -> {
@@ -136,7 +140,8 @@ public class WorkItemService {
                     reporterNames.get(incident.getCreatedBy()),
                     incident.getCreatedAt(),
                     toAssignees(workByIncident.getOrDefault(incident.getId(), List.of()), assigneeNames),
-                    RoutingRecommendationResponse.from(incident.getRoutingRecommendation()));
+                    RoutingRecommendationResponse.from(incident.getRoutingRecommendation()),
+                    lastTransfers.get(incident.getId()));
         }).toList();
     }
 
