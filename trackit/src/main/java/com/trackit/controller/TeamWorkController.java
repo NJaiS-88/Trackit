@@ -3,6 +3,7 @@ package com.trackit.controller;
 import com.trackit.dto.AssignTicketRequest;
 import com.trackit.dto.AssignWorkRequest;
 import com.trackit.dto.CreateTaskRequest;
+import com.trackit.dto.DepartmentOptionResponse;
 import com.trackit.dto.RoutingRecommendationResponse;
 import com.trackit.dto.TeamTicketResponse;
 import com.trackit.dto.TicketTransferResponse;
@@ -67,6 +68,13 @@ public class TeamWorkController {
     public RoutingRecommendationResponse recommendDepartment(@PathVariable String incidentId) {
         return RoutingRecommendationResponse.from(
                 ticketRoutingService.recommendForLead(CurrentUser.get().id(), incidentId));
+    }
+
+    @GetMapping("/departments")
+    @PreAuthorize("hasRole('ENGINEER')")
+    @Operation(summary = "Departments a ticket can be passed to, with their Leads")
+    public List<DepartmentOptionResponse> getDepartmentOptions() {
+        return ticketTransferService.departmentOptions(CurrentUser.get().id());
     }
 
     @PostMapping("/tickets/{incidentId}/transfer")

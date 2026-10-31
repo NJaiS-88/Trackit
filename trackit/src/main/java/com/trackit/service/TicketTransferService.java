@@ -1,5 +1,6 @@
 package com.trackit.service;
 
+import com.trackit.dto.DepartmentOptionResponse;
 import com.trackit.dto.TicketTransferResponse;
 import com.trackit.dto.TransferTicketRequest;
 import com.trackit.exception.ResourceNotFoundException;
@@ -7,6 +8,7 @@ import com.trackit.exception.UnauthorizedException;
 import com.trackit.exception.WorkflowViolationException;
 import com.trackit.model.Department;
 import com.trackit.model.Incident;
+import com.trackit.model.Role;
 import com.trackit.model.RoutingRecommendation;
 import com.trackit.model.TicketTransfer;
 import com.trackit.model.User;
@@ -18,12 +20,16 @@ import com.trackit.repository.TicketTransferRepository;
 import com.trackit.repository.UserRepository;
 import com.trackit.repository.WorkItemRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /** A Lead passes a ticket their department handles to another department, whose Lead then handles it. */
 @Service
@@ -39,6 +45,26 @@ public class TicketTransferService {
     private final TicketTransferRepository ticketTransferRepository;
     private final TicketDepartments ticketDepartments;
     private final TicketRoutingService ticketRoutingService;
+
+    /** Every department, A to Z, with its Leads, so a Lead can see who would receive a ticket. */
+    public List<DepartmentOptionResponse> departmentOptions(String leadId) {
+        String ownDepartmentId = userRepository.findById(leadId).map(User::getDepartmentId).orElse(null);
+        List<Department> departments = departmentRepository.findAll(Sort.by("name"));
+        Map<String, List<String>> leadsByDepartment = userRepository
+                .findByDepartmentIdInAndRoleAndActiveTrueOrderByNameAsc(
+                        departments.stream().map(Department::getId).toList(), Role.ENGINEER)
+                .stream()
+                .collect(Collectors.groupingBy(User::getDepartmentId,
+                        Collectors.mapping(User::getName, Collectors.toList())));
+        return departments.stream()
+                .map(d -> new DepartmentOptionResponse(
+                        d.getId(),
+                        d.getName(),
+                        d.getDescription(),
+                        leadsByDepartment.getOrDefault(d.getId(), List.of()),
+                        d.getId().equals(ownDepartmentId)))
+                .toList();
+    }
 
     public TicketTransferResponse transfer(String leadId, String incidentId, TransferTicketRequest request) {
         User lead = userRepository.findById(leadId)
