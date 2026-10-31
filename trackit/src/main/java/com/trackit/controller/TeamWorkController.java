@@ -3,9 +3,11 @@ package com.trackit.controller;
 import com.trackit.dto.AssignTicketRequest;
 import com.trackit.dto.AssignWorkRequest;
 import com.trackit.dto.CreateTaskRequest;
+import com.trackit.dto.RoutingRecommendationResponse;
 import com.trackit.dto.TeamTicketResponse;
 import com.trackit.dto.WorkItemResponse;
 import com.trackit.security.CurrentUser;
+import com.trackit.service.TicketRoutingService;
 import com.trackit.service.WorkItemService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,6 +33,7 @@ import java.util.List;
 public class TeamWorkController {
 
     private final WorkItemService workItemService;
+    private final TicketRoutingService ticketRoutingService;
 
     @GetMapping("/work")
     @PreAuthorize("hasRole('ENGINEER')")
@@ -52,6 +55,14 @@ public class TeamWorkController {
     @Operation(summary = "Assign a project task to one or more employees on that project")
     public List<WorkItemResponse> createTask(@Valid @RequestBody CreateTaskRequest request) {
         return workItemService.createTask(CurrentUser.get().id(), request);
+    }
+
+    @PostMapping("/tickets/{incidentId}/recommendation")
+    @PreAuthorize("hasRole('ENGINEER')")
+    @Operation(summary = "Re-run the AI recommendation of which department should handle a ticket")
+    public RoutingRecommendationResponse recommendDepartment(@PathVariable String incidentId) {
+        return RoutingRecommendationResponse.from(
+                ticketRoutingService.recommendForLead(CurrentUser.get().id(), incidentId));
     }
 
     @PostMapping("/tickets/{incidentId}/assign")

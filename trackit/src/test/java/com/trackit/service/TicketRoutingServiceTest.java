@@ -2,6 +2,7 @@ package com.trackit.service;
 
 import com.trackit.exception.AiServiceUnavailableException;
 import com.trackit.exception.ResourceNotFoundException;
+import com.trackit.exception.UnauthorizedException;
 import com.trackit.exception.WorkflowViolationException;
 import com.trackit.model.Department;
 import com.trackit.model.Incident;
@@ -144,6 +145,31 @@ class TicketRoutingServiceTest {
         assertThatThrownBy(() -> service.recommend("inc-1"))
                 .isInstanceOf(WorkflowViolationException.class)
                 .hasMessageContaining("no departments");
+        verifyNoInteractions(aiServiceClient, mongoTemplate);
+    }
+
+    @Test
+    void leadCanRerunForTheirDepartmentsTicket() {
+        when(userRepository.findById("lead-1"))
+                .thenReturn(Optional.of(User.builder().id("lead-1").departmentId("dep-it").build()));
+        when(incidentRepository.findById("inc-1")).thenReturn(Optional.of(ticket));
+        when(departmentRepository.findAll(any(Sort.class))).thenReturn(departments);
+        reporterInDepartment("dep-it");
+        when(aiServiceClient.routeTicket(any()))
+                .thenReturn(new TicketRoute("dep-fin", "Finance", "HIGH", "Payroll.", false, "m"));
+
+        assertThat(service.recommendForLead("lead-1", "inc-1").getDepartmentId()).isEqualTo("dep-fin");
+    }
+
+    @Test
+    void leadCannotRerunAnotherDepartmentsTicket() {
+        when(userRepository.findById("lead-2"))
+                .thenReturn(Optional.of(User.builder().id("lead-2").departmentId("dep-fin").build()));
+        when(incidentRepository.findById("inc-1")).thenReturn(Optional.of(ticket));
+        reporterInDepartment("dep-it");
+
+        assertThatThrownBy(() -> service.recommendForLead("lead-2", "inc-1"))
+                .isInstanceOf(UnauthorizedException.class);
         verifyNoInteractions(aiServiceClient, mongoTemplate);
     }
 

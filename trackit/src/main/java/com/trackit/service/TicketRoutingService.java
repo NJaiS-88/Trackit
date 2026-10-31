@@ -3,6 +3,7 @@ package com.trackit.service;
 import com.trackit.config.AsyncConfig;
 import com.trackit.exception.AiServiceUnavailableException;
 import com.trackit.exception.ResourceNotFoundException;
+import com.trackit.exception.UnauthorizedException;
 import com.trackit.exception.WorkflowViolationException;
 import com.trackit.model.Department;
 import com.trackit.model.Incident;
@@ -89,6 +90,24 @@ public class TicketRoutingService {
                 new Update().set("routingRecommendation", recommendation),
                 Incident.class);
         return recommendation;
+    }
+
+    /**
+     * A Lead re-runs the recommendation, e.g. after the AI was unavailable. Only for tickets their department
+     * handles.
+     */
+    public RoutingRecommendation recommendForLead(String leadId, String incidentId) {
+        String leadDepartmentId = userRepository.findById(leadId).map(User::getDepartmentId).orElse(null);
+        if (leadDepartmentId == null) {
+            throw new WorkflowViolationException("You have not been assigned to a department yet");
+        }
+        Incident incident = incidentRepository.findById(incidentId)
+                .filter(Incident::isActive)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", incidentId));
+        if (!leadDepartmentId.equals(currentDepartmentId(incident))) {
+            throw new UnauthorizedException("This ticket is not handled by your department");
+        }
+        return recommend(incidentId);
     }
 
     /**
