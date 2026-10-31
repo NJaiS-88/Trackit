@@ -24,6 +24,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.Instant;
 import java.util.List;
@@ -79,6 +80,7 @@ public class TicketRoutingService {
                 .departmentName(route.departmentName())
                 .confidence(route.confidence())
                 .reason(route.reason())
+                .handoffNote(StringUtils.hasText(route.handoffNote()) ? route.handoffNote().trim() : null)
                 .stay(route.stay())
                 .forDepartmentId(currentDepartmentId)
                 .model(route.model())

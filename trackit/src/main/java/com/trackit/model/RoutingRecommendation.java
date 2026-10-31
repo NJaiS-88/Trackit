@@ -28,6 +28,9 @@ public class RoutingRecommendation {
 
     private String reason;
 
+    /** AI-drafted note for the receiving department's Lead; null when it recommends staying. */
+    private String handoffNote;
+
     /** True when it recommends the department that was handling the ticket at the time. */
     private boolean stay;
 

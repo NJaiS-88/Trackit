@@ -7,6 +7,7 @@ import java.time.Instant;
 /**
  * The AI's suggestion of which department should handle a ticket. Advice only: a Lead decides.
  * {@code stay} means it recommends the department that was handling the ticket when it was generated.
+ * {@code handoffNote} is a draft the Lead can edit and send when passing; null when staying.
  */
 public record RoutingRecommendationResponse(
         String departmentId,
@@ -15,7 +16,8 @@ public record RoutingRecommendationResponse(
         String reason,
         boolean stay,
         String model,
-        Instant generatedAt
+        Instant generatedAt,
+        String handoffNote
 ) {
 
     /** Null when the ticket has no recommendation yet. */
@@ -30,6 +32,7 @@ public record RoutingRecommendationResponse(
                 recommendation.getReason(),
                 recommendation.isStay(),
                 recommendation.getModel(),
-                recommendation.getGeneratedAt());
+                recommendation.getGeneratedAt(),
+                recommendation.getHandoffNote());
     }
 }
