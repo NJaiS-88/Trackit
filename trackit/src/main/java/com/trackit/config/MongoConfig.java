@@ -35,6 +35,8 @@ public class MongoConfig {
         incidents.ensureIndex(new Index().on("priority", Sort.Direction.ASC));
         incidents.ensureIndex(new Index().on("category", Sort.Direction.ASC));
         incidents.ensureIndex(new Index().on("createdAt", Sort.Direction.DESC));
+        // A Lead's ticket list: tickets their department handles
+        incidents.ensureIndex(new Index().on("handlingDepartmentId", Sort.Direction.ASC));
         // The SLA job looks up running incidents whose warning time or deadline has passed
         incidents.ensureIndex(new Index().on("slaStatus", Sort.Direction.ASC).on("slaWarningAt", Sort.Direction.ASC));
         incidents.ensureIndex(new Index().on("slaStatus", Sort.Direction.ASC).on("dueAt", Sort.Direction.ASC));

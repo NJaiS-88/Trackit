@@ -14,6 +14,8 @@ IT Incident Management System — a Spring Boot REST API with a React frontend.
 - **Roles** — `EMPLOYEE`, `ENGINEER`, `ADMIN`. Approved requests become `EMPLOYEE`; an admin assigns other roles from the user list.
 - **User management (admin)** — paginated user list, change roles, activate / deactivate accounts. The last active admin cannot be demoted or deactivated.
 - **Incidents** — employees report incidents (auto-numbered `INC-YYYY-000001`), filter and page through them, and view details. Employees see their own incidents, engineers see incidents assigned to them, admins see everything.
+- **AI-assisted reporting** — on New Incident, an employee can describe the problem in their own words and have AI (Google Gemini via the [AI service](#ai-service)) fill in every field. They review and edit before submitting; the AI box disappears once used, and **Start over** clears the form and brings it back.
+- **Ticket routing between departments** — a new ticket goes to the reporter's department Lead. AI suggests which department should handle it (from its title, description and category); the Lead decides whether to pass it to that department's Lead, who can then assign it to their own team. See [Ticket routing](#ticket-routing).
 
 ## Prerequisites
 
@@ -21,6 +23,8 @@ IT Incident Management System — a Spring Boot REST API with a React frontend.
 - Node.js 20.19+
 - A MongoDB instance (e.g. a free MongoDB Atlas cluster)
 - A Redis instance (e.g. a free Upstash Redis database)
+- Python 3.11+ and a [Google AI Studio](https://aistudio.google.com/app/apikey) key, for the optional AI service
+- An [OpenRouter](https://openrouter.ai/keys) key with credits, for optional AI routing suggestions
 
 ## Running locally
 
@@ -50,6 +54,22 @@ The API starts on <http://localhost:8081>. Swagger UI: <http://localhost:8081/sw
 | `ADMIN_EMAIL` | no | — | First admin, created at startup only if no active admin exists |
 | `ADMIN_PASSWORD` | no | — | Password for that admin (at least 8 characters) |
 | `ADMIN_NAME` | no | `Administrator` | Display name for that admin |
+| `AI_SERVICE_URL` | no | `http://localhost:8000` | Base URL of the [AI service](#ai-service) |
+| `AI_SERVICE_TOKEN` | no | — | Must equal the AI service's `SERVICE_TOKEN` |
+
+### AI service
+
+A separate Python service ([`ai service/`](ai%20service)) runs LangChain chains: Gemini for the incident draft, and an OpenRouter model (`typesafe/jev-router` by default) for [ticket routing](#ticket-routing). Only the backend calls it, so no AI key ever reaches the browser. Without it Trackit works normally: the AI box reports that the assistant is unavailable, and Leads pass tickets without a suggestion.
+
+```powershell
+cd "ai service"
+python -m venv .venv
+.\.venv\Scripts\pip install -r requirements-dev.txt
+copy .env.example .env    # set GOOGLE_API_KEY, OPENROUTER_API_KEY, and SERVICE_TOKEN to the same value as the backend's AI_SERVICE_TOKEN
+.\.venv\Scripts\python -m uvicorn app.main:app --port 8000
+```
+
+`GET http://localhost:8000/health` should report `"llm_configured": true`, and `"routing_configured": true` once `OPENROUTER_API_KEY` is set. See [`ai service/README.md`](ai%20service/README.md) for its settings and tests.
 
 ### Frontend
 
@@ -66,6 +86,19 @@ Open <http://localhost:5173>. To point the frontend at a different API URL, copy
 Account requests need an admin to approve them, so the first admin comes from configuration. Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` (in `.env` locally, or on Render) and restart the backend. On startup, if there is no active admin, Trackit creates that account — or, if a user with that email already exists, promotes it to admin and keeps its password. Once any active admin exists the variables are ignored, so you can remove them afterwards.
 
 Admins review sign-ups under **Account Requests** in the sidebar, and change roles (e.g. to Engineer) under **Admin Users**.
+
+## Ticket routing
+
+Every ticket has a **handling department**, whose Lead sees it under **Work Assignments** and can assign it to their own employees.
+
+1. An employee raises a ticket; it is handled by their own department's Lead.
+2. In the background, the backend asks the AI service which department fits best. It sends the ticket's title, description, category and affected service, plus every department's name and description. The model (OpenRouter, `typesafe/jev-router` by default) answers with a department, a confidence (High / Medium / Low) and a one-line reason. Raising the ticket never waits for this.
+3. The Lead sees the suggestion under the ticket and can **Re-run AI**. With **Pass to department…** they send it to another department's Lead, with an optional note. Nothing moves without a Lead's decision.
+4. The receiving Lead sees the ticket with "Passed from …" and can assign it to their team, or pass it on again.
+
+Rules: only the handling department's Lead can pass a ticket; resolved or closed tickets can't be passed, nor can tickets with employees still assigned (finish or reassign that work first). Every pass is kept, and the ticket page shows the **Routing history** to the reporter, Leads and admins.
+
+Department descriptions (set by admins under **Departments**) give the AI much better suggestions. If the AI service is down or out of OpenRouter credits, tickets simply have no suggestion and Leads pass them manually.
 
 ## Security
 
@@ -116,6 +149,16 @@ Swagger UI is off in production (`API_DOCS_ENABLED=false`). If you enable it, lo
 
 On the free plan the service sleeps after inactivity; the first request afterwards takes up to a minute.
 
+### 2b. AI service on Render
+
+The same Blueprint also creates `trackit-ai`, a Python web service from `ai service/`.
+
+1. When prompted, set `GOOGLE_API_KEY` (and `OPENROUTER_API_KEY` for ticket routing). `SERVICE_TOKEN` is generated automatically and copied into the backend's `AI_SERVICE_TOKEN`.
+2. Once deployed, open `https://<trackit-ai URL>/health` and check `"llm_configured": true`.
+3. On `trackit-api`, set `AI_SERVICE_URL` to the AI service's URL (e.g. `https://trackit-ai.onrender.com`, no trailing slash).
+
+Like the backend, it sleeps when idle; the backend waits up to 55 seconds for it, so the first AI request after a pause can be slow.
+
 ### 3. Frontend on Vercel
 
 1. **Add New → Project**, import this repository and set **Root Directory** to `frontend` (framework preset: Vite).
@@ -134,6 +177,7 @@ On the free plan the service sleeps after inactivity; the first request afterwar
 | `POST` | `/api/auth/refresh` | Refresh cookie — rotates it and issues a new access token |
 | `POST` | `/api/auth/logout` | Public — revokes the session and clears cookies (`204`) |
 | `GET` | `/api/auth/me` | Authenticated |
+| `POST` | `/api/incidents/draft` | Employee — suggests New Incident fields from a description (AI); nothing is saved, `503` if the AI service is unavailable |
 | `GET` | `/api/admin/account-requests?status=PENDING&page=0&size=20` | Admin |
 | `POST` | `/api/admin/account-requests/{id}/approve` | Admin |
 | `POST` | `/api/admin/account-requests/{id}/reject` | Admin |
@@ -146,6 +190,10 @@ On the free plan the service sleeps after inactivity; the first request afterwar
 | `GET` | `/api/incidents/{id}` | Authenticated (scoped by role) |
 | `PUT` | `/api/incidents/{id}` | Employee (creator, while `OPEN`) |
 | `DELETE` | `/api/incidents/{id}` | Admin (soft delete) |
+| `GET` | `/api/team/tickets` | Lead — unresolved tickets their department handles, with the AI suggestion and how each was passed in |
+| `POST` | `/api/team/tickets/{id}/recommendation` | Lead (handling department) — re-runs the AI department suggestion; `503` if the AI is unavailable |
+| `GET` | `/api/team/departments` | Lead — departments a ticket can be passed to, with their Leads |
+| `POST` | `/api/team/tickets/{id}/transfer` | Lead (handling department) — passes the ticket to another department (`201`) |
 | `GET` | `/actuator/health` | Public |
 
-Errors use a consistent shape: `{ timestamp, status, error, message, path, fieldErrors?, code? }`. `code` is set where the client must react: `ORIGIN_NOT_ALLOWED`, `SESSION_EXPIRED`, `CONCURRENT_REFRESH`.
+Errors use a consistent shape: `{ timestamp, status, error, message, path, fieldErrors?, code? }`. `code` is set where the client must react: `ORIGIN_NOT_ALLOWED`, `SESSION_EXPIRED`, `CONCURRENT_REFRESH`, `AI_UNAVAILABLE`.
