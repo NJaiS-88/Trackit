@@ -37,7 +37,7 @@ services:
   - type: web
     name: trackit-ai
     runtime: python
-    rootDir: "ai servive"
+    rootDir: "ai service"
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT

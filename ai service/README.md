@@ -7,7 +7,7 @@ LangChain + Google Gemini, served over HTTP with FastAPI. The Trackit backend ca
 Requires Python 3.11+.
 
 ```powershell
-cd "ai servive"
+cd "ai service"
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1          # macOS/Linux: source .venv/bin/activate
 pip install -r requirements-dev.txt
