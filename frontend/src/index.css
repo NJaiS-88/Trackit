@@ -830,6 +830,11 @@ textarea.control {
   gap: 0.75rem;
 }
 
+.analytics-department {
+  width: auto;
+  min-width: 190px;
+}
+
 .segmented {
   display: inline-flex;
   padding: 3px;

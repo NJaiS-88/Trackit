@@ -10,9 +10,13 @@ import java.util.Map;
 /**
  * Admin analytics. "InRange" figures cover the last {@code rangeDays} days; everything else is the state now.
  * Rates are percentages (0–100, one decimal) and are null when there is nothing to measure yet.
+ * With a department selected, every figure is limited to it; {@code departmentId} null means all departments.
+ * {@code people.pendingRequests} is always organisation-wide, as sign-ups have no department.
  */
 public record AnalyticsResponse(
         int rangeDays,
+        String departmentId,
+        String departmentName,
         Instant generatedAt,
         IncidentStats incidents,
         List<TrendPoint> trend,
