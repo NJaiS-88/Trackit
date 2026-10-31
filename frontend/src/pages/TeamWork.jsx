@@ -19,6 +19,7 @@ import DueDate from '../components/DueDate'
 import SlaBadge from '../components/SlaBadge'
 import { useNow } from '../hooks/useNow'
 import FormField from '../components/FormField'
+import Modal from '../components/Modal'
 import MultiSelect from '../components/MultiSelect'
 import PriorityBadge from '../components/PriorityBadge'
 import RoutingSuggestion from '../components/RoutingSuggestion'
@@ -78,6 +79,9 @@ export default function TeamWork() {
   const [reassignChoice, setReassignChoice] = useState({})
   const [departments, setDepartments] = useState([])
   const [passingId, setPassingId] = useState(null)
+  // Ticket whose AI suggestion modal is open, and that modal's error
+  const [aiTicketId, setAiTicketId] = useState(null)
+  const [aiError, setAiError] = useState(null)
 
   const [task, setTask] = useState(EMPTY_TASK)
   const [taskErrors, setTaskErrors] = useState({})
@@ -175,11 +179,13 @@ export default function TeamWork() {
     setTicketChoice((prev) => ({ ...prev, [ticket.id]: [] }))
   }
 
-  /** Asks the AI again and swaps the new suggestion into the ticket in place, without reloading the page. */
+  /**
+   * Asks the AI (from its modal) and swaps the new suggestion into the ticket in place, without reloading the
+   * page. The answer, or the error, shows in the modal.
+   */
   const handleRerun = async (ticket) => {
     const key = `${ticket.id}:ai`
-    setActionError(null)
-    setMessage(null)
+    setAiError(null)
     setPendingIds((prev) => new Set(prev).add(key))
     try {
       const recommendation = await rerunRecommendation(ticket.id)
@@ -192,9 +198,8 @@ export default function TeamWork() {
           ),
         },
       }))
-      setMessage(`AI suggestion updated for ${ticket.incidentNumber}.`)
     } catch (error) {
-      setActionError(parseApiError(error).message)
+      setAiError(parseApiError(error).message)
     } finally {
       setPendingIds((prev) => {
         const next = new Set(prev)
@@ -277,6 +282,11 @@ export default function TeamWork() {
 
   const reassignOptions = (item) =>
     members.filter((m) => (item.type === 'PROJECT_TASK' ? m.projectId === item.projectId : true))
+
+  const aiTicket = tickets.find((t) => t.id === aiTicketId)
+  const aiBusy = aiTicket ? pendingIds.has(`${aiTicket.id}:ai`) : false
+  const aiSuggestion = aiTicket?.routingRecommendation
+  const passTicket = tickets.find((t) => t.id === passingId)
 
   return (
     <div className="page">
@@ -383,33 +393,17 @@ export default function TeamWork() {
                           <button
                             type="button"
                             className="btn btn-ghost btn-sm"
-                            onClick={() => handleRerun(t)}
-                            disabled={pendingIds.has(`${t.id}:ai`)}
+                            onClick={() => {
+                              setAiError(null)
+                              setAiTicketId(t.id)
+                            }}
                           >
-                            {pendingIds.has(`${t.id}:ai`)
-                              ? 'Asking AI…'
-                              : t.routingRecommendation
-                                ? 'Re-run AI'
-                                : 'Ask AI'}
+                            {t.routingRecommendation ? 'AI suggestion' : 'Ask AI'}
                           </button>
-                          {passingId !== t.id && (
-                            <button
-                              type="button"
-                              className="btn btn-ghost btn-sm"
-                              onClick={() => setPassingId(t.id)}
-                            >
-                              Pass to department…
-                            </button>
-                          )}
+                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPassingId(t.id)}>
+                            Pass to department…
+                          </button>
                         </div>
-                        {passingId === t.id && (
-                          <PassTicketPanel
-                            ticket={t}
-                            departments={departments}
-                            onCancel={() => setPassingId(null)}
-                            onPassed={(transfer) => handlePassed(t, transfer)}
-                          />
-                        )}
                       </td>
                       <td>
                         <PriorityBadge priority={t.priority} label={t.priorityLabel} />
@@ -725,6 +719,67 @@ export default function TeamWork() {
             </div>
           </section>
         </>
+      )}
+
+      {aiTicket && (
+        <Modal
+          title={`AI department suggestion · ${aiTicket.incidentNumber}`}
+          onClose={() => setAiTicketId(null)}
+          busy={aiBusy}
+          footer={
+            <>
+              <button type="button" className="btn btn-ghost" onClick={() => setAiTicketId(null)} disabled={aiBusy}>
+                Close
+              </button>
+              {aiSuggestion && !aiSuggestion.stay && (
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setAiTicketId(null)
+                    setPassingId(aiTicket.id)
+                  }}
+                  disabled={aiBusy}
+                >
+                  Pass to {aiSuggestion.departmentName}…
+                </button>
+              )}
+              <button type="button" className="btn btn-primary" onClick={() => handleRerun(aiTicket)} disabled={aiBusy}>
+                {aiBusy && <Spinner />}
+                {aiBusy ? 'Asking AI…' : aiSuggestion ? 'Re-run AI' : 'Ask AI'}
+              </button>
+            </>
+          }
+        >
+          <p className="ai-modal-ticket">{aiTicket.title}</p>
+          {aiBusy ? (
+            <p className="ai-modal-waiting">
+              <Spinner /> Asking the AI which department is best placed to handle this ticket…
+            </p>
+          ) : aiSuggestion ? (
+            <RoutingSuggestion recommendation={aiSuggestion} />
+          ) : (
+            <p className="text-muted">
+              No AI suggestion yet. Ask the AI which department is best placed to handle this ticket.
+            </p>
+          )}
+          {aiError && (
+            <div className="alert alert-error" role="alert">
+              {aiError}
+            </div>
+          )}
+        </Modal>
+      )}
+
+      {passTicket && (
+        <Modal title={`Pass ${passTicket.incidentNumber} to another department`} onClose={() => setPassingId(null)}>
+          <PassTicketPanel
+            ticket={passTicket}
+            departments={departments}
+            onCancel={() => setPassingId(null)}
+            onPassed={(transfer) => handlePassed(passTicket, transfer)}
+          />
+        </Modal>
       )}
     </div>
   )
