@@ -42,12 +42,8 @@ export default function SlaBadge({ dueAt, slaStatus, status, now }) {
     <span className={`due-date ${className}`}>
       <span>{formatDate(dueAt)}</span>
       <span className="due-time">{formatShortTime(dueAt)}</span>
-      {(flag || detail) && (
-        <span className="due-meta">
-          {flag && <span className="due-flag">{flag}</span>}
-          {detail && <span className="sla-detail">{detail}</span>}
-        </span>
-      )}
+      {flag && <span className="due-flag">{flag}</span>}
+      {detail && <span className="sla-detail">{detail}</span>}
     </span>
   )
 }

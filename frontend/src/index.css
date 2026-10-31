@@ -1489,12 +1489,6 @@ textarea.control {
   color: var(--muted);
 }
 
-.due-meta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
 /* Coloured text with no padding, so the flag lines up with the date and time above it */
 .due-flag {
   font-size: 0.72rem;
