@@ -21,6 +21,15 @@ export async function getIncidents(params = {}) {
   return data
 }
 
+/**
+ * Suggested New Incident fields from the employee's own description (AI); nothing is saved.
+ * @returns {Promise<{title: string, description: string, category: string, affectedService: string | null, impact: string, urgency: string}>}
+ */
+export async function draftIncident(description) {
+  const { data } = await axiosInstance.post('/api/incidents/draft', { description })
+  return data
+}
+
 export async function getDashboardSummary() {
   const { data } = await axiosInstance.get('/api/incidents/dashboard/summary')
   return data
