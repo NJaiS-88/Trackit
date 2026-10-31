@@ -37,6 +37,7 @@ public class GlobalExceptionHandler {
 
     public static final String SESSION_EXPIRED = "SESSION_EXPIRED";
     public static final String CONCURRENT_REFRESH = "CONCURRENT_REFRESH";
+    public static final String AI_UNAVAILABLE = "AI_UNAVAILABLE";
 
     private final AuthCookies authCookies;
 
@@ -192,6 +193,12 @@ public class GlobalExceptionHandler {
     }
 
     /** Leaves the cookies alone: the concurrent request that won has just set fresh ones. */
+    @ExceptionHandler(AiServiceUnavailableException.class)
+    public ResponseEntity<ApiErrorResponse> handleAiUnavailable(AiServiceUnavailableException ex,
+                                                                HttpServletRequest request) {
+        return buildWithCode(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), request, AI_UNAVAILABLE);
+    }
+
     @ExceptionHandler(ConcurrentRefreshException.class)
     public ResponseEntity<ApiErrorResponse> handleConcurrentRefresh(ConcurrentRefreshException ex,
                                                                     HttpServletRequest request) {

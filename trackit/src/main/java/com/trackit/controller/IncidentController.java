@@ -2,6 +2,8 @@ package com.trackit.controller;
 
 import com.trackit.dto.CreateIncidentRequest;
 import com.trackit.dto.DashboardSummaryResponse;
+import com.trackit.dto.IncidentDraftRequest;
+import com.trackit.dto.IncidentDraftResponse;
 import com.trackit.dto.IncidentFilterRequest;
 import com.trackit.dto.IncidentResponse;
 import com.trackit.dto.IncidentSummaryResponse;
@@ -10,6 +12,7 @@ import com.trackit.dto.StatusChangeRequest;
 import com.trackit.dto.UpdateIncidentRequest;
 import com.trackit.security.AuthenticatedUser;
 import com.trackit.security.CurrentUser;
+import com.trackit.service.IncidentDraftService;
 import com.trackit.service.IncidentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,6 +42,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class IncidentController {
 
     private final IncidentService incidentService;
+    private final IncidentDraftService incidentDraftService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -46,6 +50,13 @@ public class IncidentController {
     @Operation(summary = "Report a new incident")
     public IncidentResponse createIncident(@Valid @RequestBody CreateIncidentRequest request) {
         return incidentService.createIncident(request, getCurrentUser().id());
+    }
+
+    @PostMapping("/draft")
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    @Operation(summary = "Suggest New Incident fields from a free-text description (AI); nothing is saved")
+    public IncidentDraftResponse draftIncident(@Valid @RequestBody IncidentDraftRequest request) {
+        return incidentDraftService.draft(request.description());
     }
 
     @GetMapping
