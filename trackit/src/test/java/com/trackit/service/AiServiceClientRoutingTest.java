@@ -75,7 +75,8 @@ class AiServiceClientRoutingTest {
     void sendsTicketInSnakeCaseWithTokenAndReadsRecommendation() throws IOException {
         AtomicReference<String[]> received = serve(200, """
                 {"department_id": "dep-fin", "department_name": "Finance", "confidence": "HIGH",
-                 "reason": "Payroll report in the finance portal.", "stay": false, "model": "typesafe/jev-router"}
+                 "reason": "Payroll report in the finance portal.", "stay": false, "model": "typesafe/jev-router",
+                 "handoff_note": "Payroll report shows last month's salaries."}
                 """);
 
         TicketRoute route = client(baseUrl()).routeTicket(REQUEST);
@@ -85,6 +86,7 @@ class AiServiceClientRoutingTest {
         assertThat(route.confidence()).isEqualTo("HIGH");
         assertThat(route.stay()).isFalse();
         assertThat(route.model()).isEqualTo("typesafe/jev-router");
+        assertThat(route.handoffNote()).isEqualTo("Payroll report shows last month's salaries.");
 
         assertThat(received.get()[0]).isEqualTo("test-token");
         JsonNode sent = objectMapper.readTree(received.get()[1]);

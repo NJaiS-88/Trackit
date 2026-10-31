@@ -50,6 +50,7 @@ public class AiServiceClient {
     /**
      * The model's recommendation; {@code departmentId} is always one of the departments sent.
      * {@code confidence} is HIGH, MEDIUM or LOW; {@code stay} means it recommends the current department.
+     * {@code handoffNote} is a draft note for the receiving Lead, empty when staying.
      */
     public record TicketRoute(
             @JsonProperty("department_id") String departmentId,
@@ -57,7 +58,8 @@ public class AiServiceClient {
             String confidence,
             String reason,
             boolean stay,
-            String model
+            String model,
+            @JsonProperty("handoff_note") String handoffNote
     ) {
     }
 

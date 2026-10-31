@@ -87,11 +87,13 @@ class TicketRoutingServiceTest {
         when(departmentRepository.findAll(any(Sort.class))).thenReturn(departments);
         handledBy("dep-it");
         when(aiServiceClient.routeTicket(any())).thenReturn(new TicketRoute(
-                "dep-fin", "Finance", "HIGH", "Payroll report in the finance portal.", false, "typesafe/jev-router"));
+                "dep-fin", "Finance", "HIGH", "Payroll report in the finance portal.", false, "typesafe/jev-router",
+                "  The payroll report still shows last month's salaries.  "));
 
         RoutingRecommendation recommendation = service.recommend("inc-1");
 
         assertThat(recommendation.getDepartmentId()).isEqualTo("dep-fin");
+        assertThat(recommendation.getHandoffNote()).isEqualTo("The payroll report still shows last month's salaries.");
         assertThat(recommendation.getDepartmentName()).isEqualTo("Finance");
         assertThat(recommendation.getConfidence()).isEqualTo("HIGH");
         assertThat(recommendation.isStay()).isFalse();
@@ -111,7 +113,7 @@ class TicketRoutingServiceTest {
         when(departmentRepository.findAll(any(Sort.class))).thenReturn(departments);
         handledBy("dep-it");
         when(aiServiceClient.routeTicket(any()))
-                .thenReturn(new TicketRoute("dep-it", "IT Support", "LOW", "Closest fit.", true, "m"));
+                .thenReturn(new TicketRoute("dep-it", "IT Support", "LOW", "Closest fit.", true, "m", ""));
 
         service.recommend("inc-1");
 
@@ -157,7 +159,7 @@ class TicketRoutingServiceTest {
         when(departmentRepository.findAll(any(Sort.class))).thenReturn(departments);
         handledBy("dep-it");
         when(aiServiceClient.routeTicket(any()))
-                .thenReturn(new TicketRoute("dep-fin", "Finance", "HIGH", "Payroll.", false, "m"));
+                .thenReturn(new TicketRoute("dep-fin", "Finance", "HIGH", "Payroll.", false, "m", null));
 
         assertThat(service.recommendForLead("lead-1", "inc-1").getDepartmentId()).isEqualTo("dep-fin");
     }
