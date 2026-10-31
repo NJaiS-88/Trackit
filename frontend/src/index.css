@@ -874,9 +874,33 @@ textarea.control {
   white-space: normal;
 }
 
-.attachment-list-label {
+.attachment-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.1rem 0.45rem;
+  margin-left: -0.45rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
   color: var(--muted);
+  font: inherit;
   font-weight: 500;
+  cursor: pointer;
+}
+
+.attachment-toggle:hover {
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+.attachment-caret {
+  font-size: 0.75rem;
+  transition: transform 0.15s ease;
+}
+
+.attachment-caret-open {
+  transform: rotate(180deg);
 }
 
 .attachment-list ul {
