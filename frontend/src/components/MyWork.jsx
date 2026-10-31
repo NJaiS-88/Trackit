@@ -7,6 +7,7 @@ import Timestamp from './Timestamp'
 import DeadlineAlert from './DeadlineAlert'
 import AttachmentList from './AttachmentList'
 import DueDate from './DueDate'
+import SlaBadge from './SlaBadge'
 import PriorityBadge from './PriorityBadge'
 import Spinner from './Spinner'
 import WorkStatusBadge from './WorkStatusBadge'
@@ -202,7 +203,11 @@ export default function MyWork() {
                     <Timestamp value={w.assignedAt} />
                   </td>
                   <td className="cell-muted">
-                    <DueDate item={w} now={now} />
+                    {w.type === 'TICKET' ? (
+                      <SlaBadge dueAt={w.slaDueAt} slaStatus={w.slaStatus} now={now} />
+                    ) : (
+                      <DueDate item={w} now={now} />
+                    )}
                   </td>
                   <td>
                     <WorkStatusBadge status={w.status} />

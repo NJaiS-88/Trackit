@@ -13,6 +13,7 @@ import {
 import AttachmentList from '../components/AttachmentList'
 import AttachmentPicker from '../components/AttachmentPicker'
 import DueDate from '../components/DueDate'
+import SlaBadge from '../components/SlaBadge'
 import { useNow } from '../hooks/useNow'
 import FormField from '../components/FormField'
 import MultiSelect from '../components/MultiSelect'
@@ -293,13 +294,14 @@ export default function TeamWork() {
                     <th>Reported by</th>
                     <th>Raised</th>
                     <th>Ticket status</th>
+                    <th>SLA deadline</th>
                     <th>Handled by</th>
                   </tr>
                 </thead>
                 <tbody>
                   {tickets.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="table-empty">
+                      <td colSpan={7} className="table-empty">
                         No open tickets in your department.
                       </td>
                     </tr>
@@ -319,6 +321,9 @@ export default function TeamWork() {
                       </td>
                       <td>
                         <StatusBadge status={t.status} />
+                      </td>
+                      <td className="cell-muted">
+                        <SlaBadge dueAt={t.dueAt} slaStatus={t.slaStatus} status={t.status} now={now} />
                       </td>
                       <td>
                         {(() => {
@@ -574,7 +579,11 @@ export default function TeamWork() {
                           )}
                         </td>
                         <td className="cell-muted">
-                          <DueDate item={w} now={now} />
+                          {w.type === 'TICKET' ? (
+                            <SlaBadge dueAt={w.slaDueAt} slaStatus={w.slaStatus} now={now} />
+                          ) : (
+                            <DueDate item={w} now={now} />
+                          )}
                         </td>
                         <td className="cell-muted">
                           <Timestamp value={w.updatedAt} />
