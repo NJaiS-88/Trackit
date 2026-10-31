@@ -1,5 +1,7 @@
 package com.trackit.service;
 
+import com.trackit.config.AsyncConfig;
+import com.trackit.exception.AiServiceUnavailableException;
 import com.trackit.exception.ResourceNotFoundException;
 import com.trackit.exception.WorkflowViolationException;
 import com.trackit.model.Department;
@@ -13,11 +15,13 @@ import com.trackit.service.AiServiceClient.RoutingDepartment;
 import com.trackit.service.AiServiceClient.TicketRoute;
 import com.trackit.service.AiServiceClient.TicketRouteRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -27,6 +31,7 @@ import java.util.List;
  * Asks the AI which department should handle a ticket and stores the answer on it.
  * The recommendation is advice for the Lead; this service never moves a ticket.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TicketRoutingService {
@@ -84,6 +89,21 @@ public class TicketRoutingService {
                 new Update().set("routingRecommendation", recommendation),
                 Incident.class);
         return recommendation;
+    }
+
+    /**
+     * {@link #recommend} on a background thread, for a newly raised ticket. Failures are only logged: the ticket
+     * simply has no recommendation yet, and a Lead can still pass it or re-run the recommendation.
+     */
+    @Async(AsyncConfig.ROUTING_EXECUTOR)
+    public void recommendInBackground(String incidentId) {
+        try {
+            recommend(incidentId);
+        } catch (AiServiceUnavailableException | WorkflowViolationException e) {
+            log.info("No routing recommendation for ticket {}: {}", incidentId, e.getMessage());
+        } catch (RuntimeException e) {
+            log.warn("Routing recommendation failed for ticket {}", incidentId, e);
+        }
     }
 
     /** The department handling the ticket now: the reporter's department. */

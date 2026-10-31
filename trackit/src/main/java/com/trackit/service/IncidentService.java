@@ -70,6 +70,7 @@ public class IncidentService {
     private final PriorityService priorityService;
     private final WorkItemRepository workItemRepository;
     private final SlaService slaService;
+    private final TicketRoutingService ticketRoutingService;
 
     public IncidentResponse createIncident(CreateIncidentRequest req, String createdByUserId) {
         Instant now = Instant.now();
@@ -90,7 +91,10 @@ public class IncidentService {
                 .build();
         slaService.initialize(incident, now);
 
-        return toResponse(incidentRepository.save(incident));
+        Incident saved = incidentRepository.save(incident);
+        // Runs in the background, so raising a ticket never waits for the AI
+        ticketRoutingService.recommendInBackground(saved.getId());
+        return toResponse(saved);
     }
 
     public IncidentResponse getIncidentById(String id, String requestingUserId, Role role) {
