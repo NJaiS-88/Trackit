@@ -2,6 +2,7 @@ package com.trackit.dto;
 
 import com.trackit.model.enums.IncidentStatus;
 import com.trackit.model.enums.Priority;
+import com.trackit.model.enums.SlaStatus;
 
 import java.time.Instant;
 import java.util.List;
@@ -16,6 +17,8 @@ public record TeamTicketResponse(
         Priority priority,
         String priorityLabel,
         IncidentStatus status,
+        SlaStatus slaStatus,
+        Instant dueAt,
         String reporterName,
         Instant createdAt,
         List<TicketAssigneeResponse> assignees
