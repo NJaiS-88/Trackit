@@ -24,6 +24,13 @@ public class User {
     @Id
     private String id;
 
+    /**
+     * Human-readable id people quote, e.g. {@code EMP-000042}. Assigned once when the account is created, never
+     * changed or reused. Not used for login (that is the email) or for references between records (that is
+     * {@link #id}). Unique index declared in {@link com.trackit.config.MongoConfig}.
+     */
+    private String employeeId;
+
     private String name;
 
     @Indexed(unique = true)

@@ -55,7 +55,12 @@ public class MongoConfig {
         projects.ensureIndex(new Index().on("departmentId", Sort.Direction.ASC).on("nameKey", Sort.Direction.ASC)
                 .unique());
 
-        mongoTemplate.indexOps(User.class).ensureIndex(new Index().on("departmentId", Sort.Direction.ASC));
+        IndexOperations users = mongoTemplate.indexOps(User.class);
+        users.ensureIndex(new Index().on("departmentId", Sort.Direction.ASC));
+        // Partial, so users still waiting for the startup backfill don't collide as duplicate "missing" values
+        users.ensureIndex(new Index().on("employeeId", Sort.Direction.ASC).unique()
+                .named("employeeId_unique")
+                .partial(PartialIndexFilter.of(Criteria.where("employeeId").exists(true))));
 
         IndexOperations workItems = mongoTemplate.indexOps(WorkItem.class);
         workItems.ensureIndex(new Index().on("departmentId", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC));
