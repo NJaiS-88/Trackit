@@ -16,8 +16,17 @@ import axiosInstance from './axiosInstance'
  * @typedef {{
  *   id: string, incidentNumber: string, title: string, description: string, category: string,
  *   priority: string, priorityLabel: string, status: string, reporterName: string | null, createdAt: string,
- *   assignees: TicketAssignee[]
+ *   assignees: TicketAssignee[], routingRecommendation: RoutingRecommendation | null
  * }} TeamTicket
+ * @typedef {{
+ *   departmentId: string, departmentName: string, confidence: 'HIGH' | 'MEDIUM' | 'LOW', reason: string,
+ *   stay: boolean, model: string, generatedAt: string
+ * }} RoutingRecommendation
+ * @typedef {{id: string, name: string, description: string | null, leads: string[], own: boolean}} DepartmentOption
+ * @typedef {{
+ *   id: string, fromDepartmentName: string | null, toDepartmentId: string, toDepartmentName: string,
+ *   passedByName: string, note: string | null, followedRecommendation: boolean, createdAt: string
+ * }} TicketTransfer
  */
 
 const id = (value) => encodeURIComponent(value)
@@ -51,6 +60,30 @@ export async function assignTicket(incidentId, assigneeIds, dueDate = null) {
 /** @returns {Promise<WorkItem>} */
 export async function reassignWork(workItemId, assigneeId) {
   const { data } = await axiosInstance.patch(`/api/team/work/${id(workItemId)}/assignee`, { assigneeId })
+  return data
+}
+
+/**
+ * Asks the AI again which department should handle a ticket; 503 (code AI_UNAVAILABLE) if it can't answer.
+ * @returns {Promise<RoutingRecommendation>}
+ */
+export async function rerunRecommendation(incidentId) {
+  const { data } = await axiosInstance.post(`/api/team/tickets/${id(incidentId)}/recommendation`)
+  return data
+}
+
+/** Every department with its Leads; `own` marks the Lead's own. @returns {Promise<DepartmentOption[]>} */
+export async function getDepartmentOptions() {
+  const { data } = await axiosInstance.get('/api/team/departments')
+  return data
+}
+
+/** Passes a ticket to another department's Lead. @returns {Promise<TicketTransfer>} */
+export async function transferTicket(incidentId, toDepartmentId, note) {
+  const { data } = await axiosInstance.post(`/api/team/tickets/${id(incidentId)}/transfer`, {
+    toDepartmentId,
+    note: note?.trim() || null,
+  })
   return data
 }
 

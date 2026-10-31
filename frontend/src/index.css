@@ -859,6 +859,61 @@ textarea.control {
   font-size: 0.78rem;
 }
 
+.ticket-routing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+}
+
+/* Pass a ticket to another department */
+
+.pass-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  max-width: 380px;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  white-space: normal;
+}
+
+.pass-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.pass-panel-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.pass-panel-hint {
+  margin: -0.2rem 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.pass-panel .alert {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.pass-panel-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 /* ============ Analytics ============ */
 
 .analytics-controls {
