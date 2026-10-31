@@ -192,8 +192,12 @@ export default function AdminWork() {
           {loadError}
         </div>
       ) : (
-        <div className="table-card glass">
+        <div className="table-card table-fit glass">
           <table className="data-table">
+            <colgroup>
+              <col className="col-work" />
+              <col span={COLUMN_COUNT - 1} />
+            </colgroup>
             <thead>
               <tr>
                 <th>Work</th>
@@ -266,9 +270,7 @@ export default function AdminWork() {
       {result.data && visibleWork.length > 0 && (
         <>
           <p className="text-muted table-footnote">
-            Showing {currentPage * PAGE_SIZE + 1}–{currentPage * PAGE_SIZE + pageWork.length} of{' '}
-            {visibleWork.length}
-            {hasFilters && ` matching (${work.length} work items in total)`}
+            Showing {pageWork.length} of {visibleWork.length} work items
           </p>
           <Pagination
             page={currentPage}

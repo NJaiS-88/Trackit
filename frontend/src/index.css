@@ -790,6 +790,48 @@ textarea.control {
   white-space: normal;
 }
 
+/* ============ Tables that fit the page (no horizontal scroll) ============ */
+
+.table-fit {
+  overflow-x: visible;
+}
+
+.table-fit .data-table {
+  table-layout: fixed;
+  font-size: 0.85rem;
+}
+
+.table-fit .col-work {
+  width: 26%;
+}
+
+.table-fit .data-table th,
+.table-fit .data-table td {
+  padding: 0.65rem 0.6rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.table-fit .cell-title {
+  max-width: none;
+  overflow: visible;
+  white-space: normal;
+}
+
+.table-fit .cell-sub,
+.table-fit .due-date {
+  flex-wrap: wrap;
+}
+
+.table-fit .decline-reason,
+.table-fit .attachment-link {
+  max-width: 100%;
+}
+
+.table-fit .attachment-link {
+  white-space: normal;
+}
+
 /* ============ Attachments ============ */
 
 .attachment-picker {
