@@ -22,6 +22,7 @@ import FormField from '../components/FormField'
 import MultiSelect from '../components/MultiSelect'
 import PriorityBadge from '../components/PriorityBadge'
 import RoutingSuggestion from '../components/RoutingSuggestion'
+import { PassedFrom } from '../components/TicketTransfers'
 import Spinner from '../components/Spinner'
 import StatusBadge from '../components/StatusBadge'
 import WorkStatusBadge from '../components/WorkStatusBadge'
@@ -376,6 +377,7 @@ export default function TeamWork() {
                       <td>
                         <div className="cell-title">{t.title}</div>
                         <div className="cell-sub">{t.incidentNumber}</div>
+                        <PassedFrom transfer={t.lastTransfer} />
                         <RoutingSuggestion recommendation={t.routingRecommendation} />
                         <div className="ticket-routing-actions">
                           <button

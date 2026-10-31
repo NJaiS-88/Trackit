@@ -6,6 +6,7 @@ import PriorityBadge from '../components/PriorityBadge'
 import Spinner from '../components/Spinner'
 import StatusBadge from '../components/StatusBadge'
 import TicketChat from '../components/TicketChat'
+import TransferHistory from '../components/TicketTransfers'
 import Timestamp from '../components/Timestamp'
 import WorkStatusBadge from '../components/WorkStatusBadge'
 import { CATEGORY_LABELS, impactAnswer, LEVEL_LABELS, STATUS_LABELS, urgencyAnswer } from '../constants/incident'
@@ -136,6 +137,9 @@ export default function IncidentDetail() {
           },
         ]
       : []),
+    ...(incident.handlingDepartmentName
+      ? [{ label: 'Handling department', value: incident.handlingDepartmentName }]
+      : []),
     { label: 'Category', value: CATEGORY_LABELS[incident.category] ?? incident.category },
     { label: 'Affected Service', value: incident.affectedService ?? '—' },
     // The reporter's own answer, with the level it maps to for engineers triaging the ticket
@@ -193,6 +197,8 @@ export default function IncidentDetail() {
         <h2>Description</h2>
         <p className="description">{incident.description}</p>
       </section>
+
+      <TransferHistory transfers={incident.transfers} />
 
       {canChangeStatus && (
         allowedTransitions.length > 0 ? (
