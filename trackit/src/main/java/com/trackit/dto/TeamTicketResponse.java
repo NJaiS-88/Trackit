@@ -7,7 +7,10 @@ import com.trackit.model.enums.SlaStatus;
 import java.time.Instant;
 import java.util.List;
 
-/** An unresolved ticket raised in the Lead's department, with every employee assigned to it. */
+/**
+ * An unresolved ticket raised in the Lead's department, with every employee assigned to it and the AI's
+ * department recommendation ({@code routingRecommendation} is null until one has been generated).
+ */
 public record TeamTicketResponse(
         String id,
         String incidentNumber,
@@ -21,6 +24,7 @@ public record TeamTicketResponse(
         Instant dueAt,
         String reporterName,
         Instant createdAt,
-        List<TicketAssigneeResponse> assignees
+        List<TicketAssigneeResponse> assignees,
+        RoutingRecommendationResponse routingRecommendation
 ) {
 }

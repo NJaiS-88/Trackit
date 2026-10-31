@@ -2,6 +2,7 @@ package com.trackit.service;
 
 import com.trackit.dto.AssignTicketRequest;
 import com.trackit.dto.AttachmentResponse;
+import com.trackit.dto.RoutingRecommendationResponse;
 import com.trackit.dto.AssignWorkRequest;
 import com.trackit.dto.CreateTaskRequest;
 import com.trackit.dto.TeamTicketResponse;
@@ -124,7 +125,8 @@ public class WorkItemService {
                     incident.getDueAt(),
                     reporterNames.get(incident.getCreatedBy()),
                     incident.getCreatedAt(),
-                    toAssignees(workByIncident.getOrDefault(incident.getId(), List.of()), assigneeNames));
+                    toAssignees(workByIncident.getOrDefault(incident.getId(), List.of()), assigneeNames),
+                    RoutingRecommendationResponse.from(incident.getRoutingRecommendation()));
         }).toList();
     }
 
