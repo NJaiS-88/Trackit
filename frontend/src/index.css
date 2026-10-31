@@ -2042,10 +2042,6 @@ textarea.control {
   gap: 0.75rem;
 }
 
-.ai-draft-note {
-  margin-bottom: 1rem;
-}
-
 /* ============ Ticket chat ============ */
 
 .ticket-chat .section-header {

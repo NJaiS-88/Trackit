@@ -78,6 +78,9 @@ public class Incident {
     /** When the incident was last resolved. */
     private Instant resolvedAt;
 
+    /** AI suggestion of which department should handle the ticket; null until generated. */
+    private RoutingRecommendation routingRecommendation;
+
     /** False once soft-deleted by an admin. */
     @Builder.Default
     private boolean active = true;
