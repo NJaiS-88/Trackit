@@ -69,6 +69,7 @@ public class WorkItemService {
     private final PriorityService priorityService;
     private final SlaService slaService;
     private final AttachmentService attachmentService;
+    private final TicketDepartments ticketDepartments;
 
     // ---------- Lead ----------
 
@@ -80,20 +81,27 @@ public class WorkItemService {
         return toResponses(workItemRepository.findByDepartmentIdOrderByCreatedAtDesc(departmentId));
     }
 
-    /** Unresolved tickets raised by anyone in the Lead's department, newest first. */
+    /**
+     * Unresolved tickets the Lead's department handles (raised there, or passed to it), newest first.
+     * Tickets from before handling departments were recorded count for the reporter's department.
+     */
     public List<TeamTicketResponse> getTeamTickets(String leadId) {
         String departmentId = findUser(leadId).getDepartmentId();
         if (departmentId == null) {
             return List.of();
         }
-        Map<String, String> reporterNames = userRepository.findByDepartmentId(departmentId).stream()
-                .collect(Collectors.toMap(User::getId, User::getName));
-        if (reporterNames.isEmpty()) {
-            return List.of();
-        }
+        Set<String> departmentUserIds = userRepository.findByDepartmentId(departmentId).stream()
+                .map(User::getId)
+                .collect(Collectors.toSet());
+        Criteria handledHere = new Criteria().orOperator(
+                Criteria.where("handlingDepartmentId").is(departmentId),
+                // is(null) also matches documents that don't have the field yet
+                new Criteria().andOperator(
+                        Criteria.where("handlingDepartmentId").is(null),
+                        Criteria.where("createdBy").in(departmentUserIds)));
 
         Query query = new Query(new Criteria().andOperator(
-                Criteria.where("createdBy").in(reporterNames.keySet()),
+                handledHere,
                 Criteria.where("active").is(true),
                 Criteria.where("status").nin(FINISHED_TICKET.stream().map(Enum::name).toList())))
                 .with(Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -101,6 +109,8 @@ public class WorkItemService {
         if (incidents.isEmpty()) {
             return List.of();
         }
+        // Reporters can be in any department once tickets are passed between Leads
+        Map<String, String> reporterNames = userNames(incidents.stream().map(Incident::getCreatedBy));
 
         Map<String, List<WorkItem>> workByIncident = workItemRepository
                 .findByIncidentIdInOrderByCreatedAtAsc(incidents.stream().map(Incident::getId).toList())
@@ -177,11 +187,8 @@ public class WorkItemService {
         Incident incident = incidentRepository.findById(incidentId)
                 .filter(Incident::isActive)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", incidentId));
-        boolean raisedInDepartment = userRepository.findById(incident.getCreatedBy())
-                .map(reporter -> departmentId.equals(reporter.getDepartmentId()))
-                .orElse(false);
-        if (!raisedInDepartment) {
-            throw new UnauthorizedException("This ticket was not raised in your department");
+        if (!departmentId.equals(ticketDepartments.handlingDepartmentId(incident))) {
+            throw new UnauthorizedException("This ticket is not handled by your department");
         }
         if (FINISHED_TICKET.contains(incident.getStatus())) {
             throw new WorkflowViolationException(

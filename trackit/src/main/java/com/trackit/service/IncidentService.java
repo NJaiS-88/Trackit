@@ -44,6 +44,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -71,6 +72,7 @@ public class IncidentService {
     private final WorkItemRepository workItemRepository;
     private final SlaService slaService;
     private final TicketRoutingService ticketRoutingService;
+    private final TicketDepartments ticketDepartments;
 
     public IncidentResponse createIncident(CreateIncidentRequest req, String createdByUserId) {
         Instant now = Instant.now();
@@ -246,7 +248,8 @@ public class IncidentService {
         boolean allowed = switch (role) {
             case EMPLOYEE -> Objects.equals(incident.getCreatedBy(), userId) || isWorkingOn(incident, userId);
             case ENGINEER -> Objects.equals(incident.getAssignedTo(), userId)
-                    || departmentMemberIds(userId).contains(incident.getCreatedBy());
+                    || departmentMemberIds(userId).contains(incident.getCreatedBy())
+                    || handledByLeadsDepartment(incident, userId);
             case ADMIN -> true;
         };
         if (!allowed) {
@@ -256,22 +259,36 @@ public class IncidentService {
 
     /**
      * Which incidents a user may see; null means all. Employees see what they reported. Leads (engineers) see
-     * what is assigned to them plus everything raised in their department, so new tickets show up before they
-     * are assigned.
+     * what is assigned to them, everything raised in their department (so new tickets show up before they are
+     * assigned), and tickets another Lead passed to their department.
      */
     private Criteria visibilityScope(String userId, Role role) {
         return switch (role) {
             case EMPLOYEE -> Criteria.where("createdBy").is(userId);
             case ENGINEER -> {
+                List<Criteria> visible = new ArrayList<>();
+                visible.add(Criteria.where("assignedTo").is(userId));
                 List<String> departmentMembers = departmentMemberIds(userId);
-                yield departmentMembers.isEmpty()
-                        ? Criteria.where("assignedTo").is(userId)
-                        : new Criteria().orOperator(
-                                Criteria.where("assignedTo").is(userId),
-                                Criteria.where("createdBy").in(departmentMembers));
+                if (!departmentMembers.isEmpty()) {
+                    visible.add(Criteria.where("createdBy").in(departmentMembers));
+                }
+                leadDepartmentId(userId).ifPresent(
+                        departmentId -> visible.add(Criteria.where("handlingDepartmentId").is(departmentId)));
+                yield visible.size() == 1 ? visible.getFirst() : new Criteria().orOperator(visible);
             }
             case ADMIN -> null;
         };
+    }
+
+    /** True when the ticket is handled by the Lead's department, e.g. another Lead passed it to them. */
+    private boolean handledByLeadsDepartment(Incident incident, String leadId) {
+        return leadDepartmentId(leadId)
+                .map(departmentId -> departmentId.equals(ticketDepartments.handlingDepartmentId(incident)))
+                .orElse(false);
+    }
+
+    private Optional<String> leadDepartmentId(String leadId) {
+        return userRepository.findById(leadId).map(User::getDepartmentId);
     }
 
     /** An employee the Lead assigned to the ticket, unless they declined it (or it was reassigned away). */
