@@ -822,6 +822,43 @@ textarea.control {
   white-space: normal;
 }
 
+/* ============ AI routing suggestion ============ */
+
+.routing-suggestion {
+  max-width: 340px;
+  margin-top: 0.45rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  white-space: normal;
+}
+
+.routing-move {
+  background: var(--primary-soft);
+  color: #3730a3;
+}
+
+.routing-stay {
+  background: var(--surface-muted);
+  color: var(--muted);
+}
+
+.routing-suggestion-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.routing-confidence {
+  opacity: 0.8;
+}
+
+.routing-reason {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 /* ============ Analytics ============ */
 
 .analytics-controls {

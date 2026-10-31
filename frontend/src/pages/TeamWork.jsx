@@ -18,6 +18,7 @@ import { useNow } from '../hooks/useNow'
 import FormField from '../components/FormField'
 import MultiSelect from '../components/MultiSelect'
 import PriorityBadge from '../components/PriorityBadge'
+import RoutingSuggestion from '../components/RoutingSuggestion'
 import Spinner from '../components/Spinner'
 import StatusBadge from '../components/StatusBadge'
 import WorkStatusBadge from '../components/WorkStatusBadge'
@@ -311,6 +312,7 @@ export default function TeamWork() {
                       <td>
                         <div className="cell-title">{t.title}</div>
                         <div className="cell-sub">{t.incidentNumber}</div>
+                        <RoutingSuggestion recommendation={t.routingRecommendation} />
                       </td>
                       <td>
                         <PriorityBadge priority={t.priority} label={t.priorityLabel} />
