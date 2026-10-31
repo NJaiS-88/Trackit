@@ -15,4 +15,6 @@ public interface AccountRequestRepository extends MongoRepository<AccountRequest
     Optional<AccountRequest> findFirstByEmailOrderByCreatedAtDesc(String email);
 
     Page<AccountRequest> findByStatus(AccountRequestStatus status, Pageable pageable);
+
+    long countByStatus(AccountRequestStatus status);
 }
