@@ -92,6 +92,32 @@ def test_route_endpoint_returns_recommendation(client, monkeypatch):
     assert body["model"]
 
 
+def test_route_endpoint_returns_handoff_note_when_passing(client, monkeypatch):
+    real_recommend = ticket_routing.recommend
+    note = "The payroll report in the finance portal still shows last month's salaries. " + "x" * 600
+
+    async def fake_recommend(request):
+        reply = {"department_id": "dep-fin", "confidence": "HIGH", "reason": "Payroll.", "handoff_note": note}
+        return await real_recommend(request, llm=fake_model(reply))
+
+    monkeypatch.setattr(ticket_routing, "recommend", fake_recommend)
+    body = client.post("/api/tickets/route", json=REQUEST).json()
+    assert body["stay"] is False
+    assert body["handoff_note"].startswith("The payroll report")
+    assert len(body["handoff_note"]) == 500
+
+
+def test_route_endpoint_drops_handoff_note_when_staying(client, monkeypatch):
+    real_recommend = ticket_routing.recommend
+
+    async def fake_recommend(request):
+        reply = {"department_id": "dep-it", "confidence": "HIGH", "reason": "IT.", "handoff_note": "Not needed."}
+        return await real_recommend(request, llm=fake_model(reply))
+
+    monkeypatch.setattr(ticket_routing, "recommend", fake_recommend)
+    assert client.post("/api/tickets/route", json=REQUEST).json()["handoff_note"] == ""
+
+
 def test_route_endpoint_without_key_is_503(client, monkeypatch):
     async def not_configured(request):
         raise LLMNotConfiguredError("OPENROUTER_API_KEY is not set.")

@@ -118,11 +118,20 @@ class RoutingDecision(BaseModel):
         description="HIGH = clearly this department's work, MEDIUM = likely, LOW = no department is a clear fit"
     )
     reason: str = Field(description="One or two sentences a Lead can read, at most 300 characters")
+    handoff_note: str = Field(
+        default="",
+        description="Note for the receiving department's Lead, at most 500 characters; empty when staying",
+    )
 
     @field_validator("reason", mode="before")
     @classmethod
     def _cap_reason(cls, value: str) -> str:
         return str(value).strip()[:300]
+
+    @field_validator("handoff_note", mode="before")
+    @classmethod
+    def _cap_handoff_note(cls, value: str | None) -> str:
+        return str(value or "").strip()[:500]
 
 
 class TicketRouteResponse(BaseModel):
@@ -133,3 +142,5 @@ class TicketRouteResponse(BaseModel):
     # True when the recommendation is the department already handling the ticket
     stay: bool
     model: str
+    # Draft the Lead can edit and send when passing; empty when staying
+    handoff_note: str = ""

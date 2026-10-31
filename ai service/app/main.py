@@ -93,13 +93,15 @@ async def ticket_route_endpoint(request: TicketRouteRequest) -> TicketRouteRespo
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="The AI model could not recommend a department right now.",
         ) from error
+    stay = department.id == request.current_department_id
     return TicketRouteResponse(
         department_id=department.id,
         department_name=department.name,
         confidence=decision.confidence,
         reason=decision.reason,
-        stay=department.id == request.current_department_id,
+        stay=stay,
         model=get_settings().openrouter_model,
+        handoff_note="" if stay else decision.handoff_note,
     )
 
 
