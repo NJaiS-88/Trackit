@@ -1094,6 +1094,68 @@ textarea.control {
   background: var(--success);
 }
 
+.analytics-columns-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.table-fit .col-wide {
+  width: 20%;
+}
+
+.table-fit .col-progress {
+  width: 18%;
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.progress-track {
+  flex: 1;
+  height: 6px;
+  min-width: 40px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  overflow: hidden;
+}
+
+.progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--success);
+}
+
+.progress-value {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.workload {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.workload-free {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.workload-normal {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.workload-heavy {
+  background: #fef3c7;
+  color: #b45309;
+}
+
 .org-summary {
   display: flex;
   flex-direction: column;

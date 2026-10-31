@@ -3,102 +3,11 @@ import { Link } from 'react-router-dom'
 import { getAnalytics } from '../api/analyticsApi'
 import { parseApiError } from '../api/axiosInstance'
 import { getAllDepartments } from '../api/departmentApi'
+import { BarList, Kpi, RangeSwitch, TrendChart } from '../components/AnalyticsWidgets'
 import Spinner from '../components/Spinner'
 import Timestamp from '../components/Timestamp'
 import { PRIORITIES, PRIORITY_LABELS } from '../constants/incident'
-import { formatDay } from '../utils/format'
-
-const RANGES = [7, 30, 90]
-
-const percent = (value) => (value == null ? '—' : `${value}%`)
-
-/** Hours under two days, days beyond that. */
-function formatDuration(hours) {
-  if (hours == null) return '—'
-  if (hours < 1) return `${Math.round(hours * 60)} min`
-  if (hours < 48) return `${hours.toFixed(1)} h`
-  return `${(hours / 24).toFixed(1)} days`
-}
-
-/** Colour a rate: green at target, amber close to it, red below. */
-function rateTone(value, target = 90) {
-  if (value == null) return ''
-  if (value >= target) return 'kpi-good'
-  if (value >= target - 15) return 'kpi-warn'
-  return 'kpi-bad'
-}
-
-function Kpi({ label, value, detail, tone = '', to }) {
-  const body = (
-    <>
-      <span className="stat-label">{label}</span>
-      <span className={`stat-value ${tone}`}>{value}</span>
-      <span className="kpi-detail">{detail}</span>
-    </>
-  )
-  return to ? (
-    <Link to={to} className="kpi-card glass kpi-link">
-      {body}
-    </Link>
-  ) : (
-    <div className="kpi-card glass">{body}</div>
-  )
-}
-
-/** Horizontal bars; `rows` are `{ label, value, tone }`. */
-function BarList({ rows }) {
-  const max = Math.max(...rows.map((r) => r.value), 1)
-  return (
-    <ul className="bar-list">
-      {rows.map((row) => (
-        <li key={row.label}>
-          <span className="bar-list-label">{row.label}</span>
-          <span className="bar-list-track" aria-hidden="true">
-            <span className={`bar-list-fill ${row.tone ?? ''}`} style={{ width: `${(row.value / max) * 100}%` }} />
-          </span>
-          <span className="bar-list-value">{row.value}</span>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-function TrendChart({ points }) {
-  const max = Math.max(...points.flatMap((p) => [p.created, p.resolved]), 1)
-  // Keep the axis readable: roughly 7 labels whatever the number of bars
-  const labelEvery = Math.max(Math.ceil(points.length / 7), 1)
-  const weekly = points.length > 0 && points[0].days > 1
-
-  return (
-    <div className="trend">
-      <div className="trend-legend">
-        <span>
-          <span className="legend-swatch swatch-created" /> Raised
-        </span>
-        <span>
-          <span className="legend-swatch swatch-resolved" /> Resolved
-        </span>
-        <span className="text-muted">{weekly ? 'Per week' : 'Per day'}</span>
-      </div>
-      <div className="trend-chart" role="img" aria-label="Incidents raised and resolved over time">
-        {points.map((p, index) => (
-          <div
-            key={p.start}
-            className="trend-group"
-            title={`${weekly ? 'Week of ' : ''}${formatDay(p.start)}: ${p.created} raised, ${p.resolved} resolved`}
-          >
-            <div className="trend-bars">
-              <span className="trend-bar swatch-created" style={{ height: `${(p.created / max) * 100}%` }} />
-              <span className="trend-bar swatch-resolved" style={{ height: `${(p.resolved / max) * 100}%` }} />
-            </div>
-            <span className="trend-label">{index % labelEvery === 0 ? formatDay(p.start).replace(/,? \d{4}$/, '') : ''}</span>
-          </div>
-        ))}
-      </div>
-      <p className="trend-axis text-muted">Peak: {max} per {weekly ? 'week' : 'day'}</p>
-    </div>
-  )
-}
+import { formatDuration, formatPercent as percent, rateTone } from '../utils/analytics'
 
 export default function AdminAnalytics() {
   const [days, setDays] = useState(30)
@@ -168,20 +77,7 @@ export default function AdminAnalytics() {
               </option>
             ))}
           </select>
-          <div className="segmented" role="group" aria-label="Time range">
-            {RANGES.map((range) => (
-              <button
-                key={range}
-                type="button"
-                className={range === days ? 'active' : undefined}
-                aria-pressed={range === days}
-                onClick={() => setDays(range)}
-                disabled={loading}
-              >
-                {range} days
-              </button>
-            ))}
-          </div>
+          <RangeSwitch value={days} onChange={setDays} disabled={loading} />
           <button
             type="button"
             className="btn btn-ghost"

@@ -7,7 +7,11 @@ import com.trackit.dto.AnalyticsResponse.PeopleStats;
 import com.trackit.dto.AnalyticsResponse.ProjectStats;
 import com.trackit.dto.AnalyticsResponse.TrendPoint;
 import com.trackit.dto.AnalyticsResponse.WorkStats;
+import com.trackit.dto.TeamAnalyticsResponse;
+import com.trackit.dto.TeamAnalyticsResponse.EmployeeStats;
+import com.trackit.dto.TeamAnalyticsResponse.ProjectProgress;
 import com.trackit.exception.ResourceNotFoundException;
+import com.trackit.exception.WorkflowViolationException;
 import com.trackit.model.Department;
 import com.trackit.model.Incident;
 import com.trackit.model.Project;
@@ -114,6 +118,78 @@ public class AnalyticsService {
                 peopleStats(users),
                 departmentStats(departments, users, usersById, incidents, work, projects, from, overdue,
                         incidentsById, zone));
+    }
+
+    /** The Lead's own department: its overview plus per-employee and per-project breakdowns. */
+    public TeamAnalyticsResponse getTeamAnalytics(String leadId, int rangeDays, ZoneId zone) {
+        String departmentId = userRepository.findById(leadId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", leadId))
+                .getDepartmentId();
+        if (departmentId == null) {
+            throw new WorkflowViolationException("You have not been assigned to a department yet");
+        }
+        AnalyticsResponse overview = getAnalytics(rangeDays, zone, departmentId);
+
+        Instant now = Instant.now();
+        Instant from = LocalDate.now(zone).minusDays(rangeDays - 1L).atStartOfDay(zone).toInstant();
+        Map<String, Incident> incidentsById = incidentRepository.findAll().stream()
+                .collect(Collectors.toMap(Incident::getId, Function.identity()));
+        List<WorkItem> work = workItemRepository.findByDepartmentIdOrderByCreatedAtDesc(departmentId);
+        Predicate<WorkItem> overdue = w -> isOpen(w) && isPast(deadlineOf(w, incidentsById, zone), now);
+
+        List<User> employees = userRepository
+                .findByDepartmentIdAndRoleAndActiveTrueOrderByNameAsc(departmentId, Role.EMPLOYEE);
+        List<Project> projects = projectRepository.findByDepartmentIdOrderByNameAsc(departmentId);
+        Map<String, String> projectNames = projects.stream()
+                .collect(Collectors.toMap(Project::getId, Project::getName));
+
+        List<EmployeeStats> employeeStats = employees.stream().map(employee -> {
+            List<WorkItem> theirs = work.stream().filter(w -> employee.getId().equals(w.getAssignedTo())).toList();
+            List<WorkItem> completed = completedSince(theirs, from);
+            Double avgHours = completed.stream()
+                    .filter(w -> assignedAt(w) != null && w.getCompletedAt() != null)
+                    .mapToLong(w -> Duration.between(assignedAt(w), w.getCompletedAt()).toMinutes())
+                    .average()
+                    .stream()
+                    .mapToObj(minutes -> round1(minutes / 60.0))
+                    .findFirst()
+                    .orElse(null);
+            return new EmployeeStats(
+                    employee.getId(),
+                    employee.getName(),
+                    employee.getProjectId() == null ? null : projectNames.get(employee.getProjectId()),
+                    theirs.stream().filter(w -> w.getStatus() == WorkItemStatus.ASSIGNED).count(),
+                    theirs.stream().filter(w -> w.getStatus() == WorkItemStatus.IN_PROGRESS).count(),
+                    theirs.stream().filter(overdue).count(),
+                    theirs.stream().filter(w -> w.getStatus() == WorkItemStatus.DECLINED).count(),
+                    completed.size(),
+                    onTimePercent(completed, incidentsById, zone),
+                    avgHours);
+        }).toList();
+
+        List<ProjectProgress> projectProgress = projects.stream().map(project -> {
+            List<WorkItem> tasks = work.stream().filter(w -> project.getId().equals(w.getProjectId())).toList();
+            long completed = tasks.stream().filter(w -> w.getStatus() == WorkItemStatus.COMPLETED).count();
+            Instant nextDeadline = tasks.stream()
+                    .filter(AnalyticsService::isOpen)
+                    .map(w -> deadlineOf(w, incidentsById, zone))
+                    .filter(Objects::nonNull)
+                    .min(Comparator.naturalOrder())
+                    .orElse(null);
+            return new ProjectProgress(
+                    project.getId(),
+                    project.getName(),
+                    statusOf(project),
+                    employees.stream().filter(e -> project.getId().equals(e.getProjectId())).count(),
+                    tasks.size(),
+                    completed,
+                    tasks.stream().filter(AnalyticsService::isOpen).count(),
+                    tasks.stream().filter(overdue).count(),
+                    percent(completed, tasks.size()),
+                    nextDeadline);
+        }).toList();
+
+        return new TeamAnalyticsResponse(overview, employeeStats, projectProgress);
     }
 
     private static String departmentOfReporter(Incident incident, Map<String, User> usersById) {

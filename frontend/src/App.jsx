@@ -13,6 +13,7 @@ import Incidents from './pages/Incidents'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Team from './pages/Team'
+import TeamAnalytics from './pages/TeamAnalytics'
 import TeamWork from './pages/TeamWork'
 import GuestRoute from './routes/GuestRoute'
 import ProtectedRoute from './routes/ProtectedRoute'
@@ -59,6 +60,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={['ENGINEER']}>
               <TeamWork />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/team/analytics"
+          element={
+            <ProtectedRoute allowedRoles={['ENGINEER']}>
+              <TeamAnalytics />
             </ProtectedRoute>
           }
         />

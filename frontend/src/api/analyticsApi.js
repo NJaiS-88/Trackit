@@ -18,13 +18,30 @@ import axiosInstance from './axiosInstance'
  * }} Analytics
  */
 
+const timeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone
+
+/**
+ * @typedef {{id: string, name: string, projectName: string | null, assigned: number, inProgress: number,
+ *   overdue: number, declined: number, completedInRange: number, onTimePercent: number | null,
+ *   avgCompletionHours: number | null}} EmployeeStats
+ * @typedef {{id: string, name: string, status: 'ACTIVE' | 'ON_HOLD' | 'COMPLETED', members: number, tasks: number,
+ *   completed: number, open: number, overdue: number, completionPercent: number | null,
+ *   nextDeadline: string | null}} ProjectProgress
+ * @typedef {{overview: Analytics, employees: EmployeeStats[], projects: ProjectProgress[]}} TeamAnalytics
+ */
+
+/** The signed-in Lead's own department. @returns {Promise<TeamAnalytics>} */
+export async function getTeamAnalytics(days) {
+  const { data } = await axiosInstance.get('/api/team/analytics', { params: { days, tz: timeZone() } })
+  return data
+}
+
 /**
  * Days are counted in the browser's time zone. Omit `departmentId` for all departments.
  * @returns {Promise<Analytics>}
  */
 export async function getAnalytics(days, departmentId) {
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-  const params = { days, tz }
+  const params = { days, tz: timeZone() }
   if (departmentId) params.departmentId = departmentId
   const { data } = await axiosInstance.get('/api/admin/analytics', { params })
   return data
