@@ -92,9 +92,17 @@ public class GlobalExceptionHandler {
                 "Files are too large: each file can be at most 10 MB, and 50 MB in total per upload", request, null);
     }
 
-    @ExceptionHandler({MissingServletRequestPartException.class, MultipartException.class})
-    public ResponseEntity<ApiErrorResponse> handleBadUpload(Exception ex, HttpServletRequest request) {
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ApiErrorResponse> handleMissingUpload(MissingServletRequestPartException ex,
+                                                                HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, "Choose at least one file to upload", request, null);
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<ApiErrorResponse> handleBadUpload(MultipartException ex, HttpServletRequest request) {
+        log.warn("Rejected multipart upload on {}: {}", request.getRequestURI(), ex.getMessage());
+        return build(HttpStatus.BAD_REQUEST,
+                "The files couldn't be uploaded. Attach at most 20 files, 10 MB each, and try again.", request, null);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
