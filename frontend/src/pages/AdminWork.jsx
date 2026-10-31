@@ -4,6 +4,7 @@ import { getAllDepartments } from '../api/departmentApi'
 import { getAllWork } from '../api/workApi'
 import AttachmentList from '../components/AttachmentList'
 import DueDate from '../components/DueDate'
+import Pagination from '../components/Pagination'
 import { useNow } from '../hooks/useNow'
 import PriorityBadge from '../components/PriorityBadge'
 import Spinner from '../components/Spinner'
@@ -20,6 +21,7 @@ import {
 import Timestamp from '../components/Timestamp'
 
 const COLUMN_COUNT = 8
+const PAGE_SIZE = 10
 
 export default function AdminWork() {
   const now = useNow()
@@ -31,6 +33,7 @@ export default function AdminWork() {
   const [statusFilter, setStatusFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(0)
 
   useEffect(() => {
     let ignore = false
@@ -81,12 +84,24 @@ export default function AdminWork() {
     )
   }, [work, departmentFilter, statusFilter, typeFilter, search])
 
+  const totalPages = Math.max(Math.ceil(visibleWork.length / PAGE_SIZE), 1)
+  // Stay in range when a refresh or filter leaves fewer pages than before
+  const currentPage = Math.min(page, totalPages - 1)
+  const pageWork = visibleWork.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE)
+
+  /** Wraps a filter setter so any filter change starts again from the first page. */
+  const filterChange = (setter) => (event) => {
+    setter(event.target.value)
+    setPage(0)
+  }
+
   const hasFilters = Boolean(departmentFilter || statusFilter || typeFilter || search)
   const clearFilters = () => {
     setDepartmentFilter('')
     setStatusFilter('')
     setTypeFilter('')
     setSearch('')
+    setPage(0)
   }
 
   return (
@@ -123,13 +138,13 @@ export default function AdminWork() {
           type="search"
           placeholder="Search by title, employee, Lead, project or ticket"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={filterChange(setSearch)}
           aria-label="Search work"
         />
         <select
           className="control"
           value={departmentFilter}
-          onChange={(event) => setDepartmentFilter(event.target.value)}
+          onChange={filterChange(setDepartmentFilter)}
           aria-label="Filter by department"
         >
           <option value="">All departments</option>
@@ -142,7 +157,7 @@ export default function AdminWork() {
         <select
           className="control"
           value={statusFilter}
-          onChange={(event) => setStatusFilter(event.target.value)}
+          onChange={filterChange(setStatusFilter)}
           aria-label="Filter by status"
         >
           <option value="">All statuses</option>
@@ -155,7 +170,7 @@ export default function AdminWork() {
         <select
           className="control"
           value={typeFilter}
-          onChange={(event) => setTypeFilter(event.target.value)}
+          onChange={filterChange(setTypeFilter)}
           aria-label="Filter by type"
         >
           <option value="">All types</option>
@@ -208,7 +223,7 @@ export default function AdminWork() {
                   </td>
                 </tr>
               )}
-              {visibleWork.map((w) => (
+              {pageWork.map((w) => (
                 <tr key={w.id}>
                   <td>
                     <div className="cell-title">{w.title}</div>
@@ -248,10 +263,21 @@ export default function AdminWork() {
         </div>
       )}
 
-      {result.data && work.length > 0 && (
-        <p className="text-muted table-footnote">
-          Showing {visibleWork.length} of {work.length} work items
-        </p>
+      {result.data && visibleWork.length > 0 && (
+        <>
+          <p className="text-muted table-footnote">
+            Showing {currentPage * PAGE_SIZE + 1}–{currentPage * PAGE_SIZE + pageWork.length} of{' '}
+            {visibleWork.length}
+            {hasFilters && ` matching (${work.length} work items in total)`}
+          </p>
+          <Pagination
+            page={currentPage}
+            totalPages={totalPages}
+            totalElements={visibleWork.length}
+            onPageChange={setPage}
+            disabled={loading}
+          />
+        </>
       )}
     </div>
   )
