@@ -25,3 +25,31 @@ services:
         value: trackit
       - key: API_DOCS_ENABLED
         value: "false"
+      # Public URL of trackit-ai, e.g. https://trackit-ai.onrender.com
+      - key: AI_SERVICE_URL
+        sync: false
+      - key: AI_SERVICE_TOKEN
+        fromService:
+          type: web
+          name: trackit-ai
+          envVarKey: SERVICE_TOKEN
+
+  - type: web
+    name: trackit-ai
+    runtime: python
+    rootDir: "ai servive"
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      # Shared secret the backend sends as X-Service-Token; copied into trackit-api's AI_SERVICE_TOKEN
+      - key: SERVICE_TOKEN
+        generateValue: true

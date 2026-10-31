@@ -14,6 +14,7 @@ IT Incident Management System — a Spring Boot REST API with a React frontend.
 - **Roles** — `EMPLOYEE`, `ENGINEER`, `ADMIN`. Approved requests become `EMPLOYEE`; an admin assigns other roles from the user list.
 - **User management (admin)** — paginated user list, change roles, activate / deactivate accounts. The last active admin cannot be demoted or deactivated.
 - **Incidents** — employees report incidents (auto-numbered `INC-YYYY-000001`), filter and page through them, and view details. Employees see their own incidents, engineers see incidents assigned to them, admins see everything.
+- **AI-assisted reporting** — on New Incident, an employee can describe the problem in their own words and have AI (Google Gemini via the [AI service](#ai-service)) fill in every field. They review and edit before submitting; the AI box disappears once used, and **Start over** clears the form and brings it back.
 
 ## Prerequisites
 
@@ -21,6 +22,7 @@ IT Incident Management System — a Spring Boot REST API with a React frontend.
 - Node.js 20.19+
 - A MongoDB instance (e.g. a free MongoDB Atlas cluster)
 - A Redis instance (e.g. a free Upstash Redis database)
+- Python 3.11+ and a [Google AI Studio](https://aistudio.google.com/app/apikey) key, for the optional AI service
 
 ## Running locally
 
@@ -50,6 +52,22 @@ The API starts on <http://localhost:8081>. Swagger UI: <http://localhost:8081/sw
 | `ADMIN_EMAIL` | no | — | First admin, created at startup only if no active admin exists |
 | `ADMIN_PASSWORD` | no | — | Password for that admin (at least 8 characters) |
 | `ADMIN_NAME` | no | `Administrator` | Display name for that admin |
+| `AI_SERVICE_URL` | no | `http://localhost:8000` | Base URL of the [AI service](#ai-service) |
+| `AI_SERVICE_TOKEN` | no | — | Must equal the AI service's `SERVICE_TOKEN` |
+
+### AI service
+
+A separate Python service ([`ai servive/`](ai%20servive)) runs LangChain chains against Gemini; only the backend calls it, so the Gemini key never reaches the browser. Without it Trackit works normally and the AI box reports that the assistant is unavailable.
+
+```powershell
+cd "ai servive"
+python -m venv .venv
+.\.venv\Scripts\pip install -r requirements-dev.txt
+copy .env.example .env    # set GOOGLE_API_KEY, and SERVICE_TOKEN to the same value as the backend's AI_SERVICE_TOKEN
+.\.venv\Scripts\python -m uvicorn app.main:app --port 8000
+```
+
+`GET http://localhost:8000/health` should report `"llm_configured": true`. See [`ai servive/README.md`](ai%20servive/README.md) for its settings and tests.
 
 ### Frontend
 
@@ -116,6 +134,16 @@ Swagger UI is off in production (`API_DOCS_ENABLED=false`). If you enable it, lo
 
 On the free plan the service sleeps after inactivity; the first request afterwards takes up to a minute.
 
+### 2b. AI service on Render
+
+The same Blueprint also creates `trackit-ai`, a Python web service from `ai servive/`.
+
+1. When prompted, set `GOOGLE_API_KEY` (and `OPENROUTER_API_KEY` for ticket routing). `SERVICE_TOKEN` is generated automatically and copied into the backend's `AI_SERVICE_TOKEN`.
+2. Once deployed, open `https://<trackit-ai URL>/health` and check `"llm_configured": true`.
+3. On `trackit-api`, set `AI_SERVICE_URL` to the AI service's URL (e.g. `https://trackit-ai.onrender.com`, no trailing slash).
+
+Like the backend, it sleeps when idle; the backend waits up to 55 seconds for it, so the first AI request after a pause can be slow.
+
 ### 3. Frontend on Vercel
 
 1. **Add New → Project**, import this repository and set **Root Directory** to `frontend` (framework preset: Vite).
@@ -134,6 +162,7 @@ On the free plan the service sleeps after inactivity; the first request afterwar
 | `POST` | `/api/auth/refresh` | Refresh cookie — rotates it and issues a new access token |
 | `POST` | `/api/auth/logout` | Public — revokes the session and clears cookies (`204`) |
 | `GET` | `/api/auth/me` | Authenticated |
+| `POST` | `/api/incidents/draft` | Employee — suggests New Incident fields from a description (AI); nothing is saved, `503` if the AI service is unavailable |
 | `GET` | `/api/admin/account-requests?status=PENDING&page=0&size=20` | Admin |
 | `POST` | `/api/admin/account-requests/{id}/approve` | Admin |
 | `POST` | `/api/admin/account-requests/{id}/reject` | Admin |
