@@ -33,6 +33,10 @@ public record CreateTaskRequest(
         LocalDate dueDate,
 
         @NotNull(message = "Due time is required")
-        LocalTime dueTime
+        LocalTime dueTime,
+
+        // Optional: ids returned by POST /api/team/attachments
+        @Size(max = 20, message = "At most 20 files can be attached")
+        List<@NotBlank(message = "Attachment id is required") String> attachmentIds
 ) {
 }

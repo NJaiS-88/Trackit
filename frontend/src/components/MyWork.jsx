@@ -5,6 +5,7 @@ import { WORK_TYPE_LABELS, deadlineState, workSource } from '../constants/work'
 import { useNow } from '../hooks/useNow'
 import Timestamp from './Timestamp'
 import DeadlineAlert from './DeadlineAlert'
+import AttachmentList from './AttachmentList'
 import DueDate from './DueDate'
 import PriorityBadge from './PriorityBadge'
 import Spinner from './Spinner'
@@ -194,6 +195,7 @@ export default function MyWork() {
                       )}
                     </div>
                     {w.description && <div className="cell-description">{w.description}</div>}
+                    <AttachmentList attachments={w.attachments} />
                   </td>
                   <td className="cell-muted">{w.assignedByName ?? '—'}</td>
                   <td className="cell-muted">

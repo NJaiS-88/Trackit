@@ -790,6 +790,133 @@ textarea.control {
   white-space: normal;
 }
 
+/* ============ Attachments ============ */
+
+.attachment-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.attachment-picker-help {
+  margin: 0;
+  text-align: left;
+}
+
+.attachment-picker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.attachment-picker-actions .field-hint {
+  text-align: left;
+}
+
+.attachment-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 220px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.4rem;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+}
+
+.attachment-picker-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.2rem 0.3rem;
+  font-size: 0.85rem;
+}
+
+.attachment-picker-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-picker-total {
+  margin: 0;
+  text-align: left;
+}
+
+.attachment-remove {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.attachment-remove:hover:not(:disabled) {
+  color: var(--danger);
+}
+
+.attachment-size {
+  font-size: 0.78rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.attachment-list {
+  margin-top: 0.4rem;
+  font-size: 0.82rem;
+  white-space: normal;
+}
+
+.attachment-list-label {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.attachment-list ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attachment-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.attachment-link {
+  max-width: 320px;
+  overflow: hidden;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--primary);
+  font: inherit;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.attachment-link:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.attachment-link:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 .timestamp {
   display: inline-flex;
   flex-direction: column;

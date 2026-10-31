@@ -22,6 +22,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.LinkedHashMap;
@@ -80,6 +83,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleUnreadableBody(HttpMessageNotReadableException ex,
                                                                  HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, "Malformed or missing request body", request, null);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiErrorResponse> handleUploadTooLarge(MaxUploadSizeExceededException ex,
+                                                                 HttpServletRequest request) {
+        return build(HttpStatus.PAYLOAD_TOO_LARGE,
+                "Files are too large: each file can be at most 10 MB, and 50 MB in total per upload", request, null);
+    }
+
+    @ExceptionHandler({MissingServletRequestPartException.class, MultipartException.class})
+    public ResponseEntity<ApiErrorResponse> handleBadUpload(Exception ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, "Choose at least one file to upload", request, null);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

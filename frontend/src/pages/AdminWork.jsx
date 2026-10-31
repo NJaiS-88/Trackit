@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { parseApiError } from '../api/axiosInstance'
 import { getAllDepartments } from '../api/departmentApi'
 import { getAllWork } from '../api/workApi'
+import AttachmentList from '../components/AttachmentList'
 import DueDate from '../components/DueDate'
 import { useNow } from '../hooks/useNow'
 import PriorityBadge from '../components/PriorityBadge'
@@ -220,6 +221,7 @@ export default function AdminWork() {
                         </>
                       )}
                     </div>
+                    <AttachmentList attachments={w.attachments} />
                   </td>
                   <td className="cell-muted">{w.departmentName ?? '—'}</td>
                   <td>{w.assigneeName ?? '—'}</td>

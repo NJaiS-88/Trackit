@@ -14,6 +14,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A piece of work a Lead gave to an employee in their department: a project task or a ticket.
@@ -57,6 +59,10 @@ public class WorkItem {
 
     /** Optional time of day on {@link #dueDate}; without it the work is due by the end of that day. */
     private LocalTime dueTime;
+
+    /** GridFS ids of reference files the Lead attached; shared by every copy of the same task. */
+    @Builder.Default
+    private List<String> attachmentIds = new ArrayList<>();
 
     /** Why the employee could not do it; set while {@link WorkItemStatus#DECLINED}. */
     private String declineReason;

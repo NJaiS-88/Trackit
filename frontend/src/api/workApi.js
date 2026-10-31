@@ -1,6 +1,7 @@
 import axiosInstance from './axiosInstance'
 
 /**
+ * @typedef {{id: string, name: string, path: string, size: number, contentType: string}} Attachment
  * @typedef {'PROJECT_TASK' | 'TICKET'} WorkItemType
  * @typedef {'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'DECLINED'} WorkItemStatus
  * @typedef {{
@@ -51,6 +52,37 @@ export async function assignTicket(incidentId, assigneeIds, dueDate = null) {
 export async function reassignWork(workItemId, assigneeId) {
   const { data } = await axiosInstance.patch(`/api/team/work/${id(workItemId)}/assignee`, { assigneeId })
   return data
+}
+
+/**
+ * Uploads reference files for project work. Files picked from a folder keep their folder path
+ * (`webkitRelativePath`). @returns {Promise<Attachment[]>}
+ */
+export async function uploadAttachments(files) {
+  const form = new FormData()
+  files.forEach((file) => form.append('files', file, file.name))
+  form.append('paths', JSON.stringify(files.map((file) => file.webkitRelativePath || file.name)))
+  // Overrides the instance's JSON default so axios sends the FormData as-is and the browser adds the boundary
+  const { data } = await axiosInstance.post('/api/team/attachments', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return data
+}
+
+/**
+ * Downloads through the API client (so the auth cookies go along) and saves the file under its name.
+ * @param {Attachment} attachment
+ */
+export async function downloadAttachment(attachment) {
+  const { data } = await axiosInstance.get(`/api/attachments/${id(attachment.id)}`, { responseType: 'blob' })
+  const url = URL.createObjectURL(data)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = attachment.name
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 // ---------- Employee ----------

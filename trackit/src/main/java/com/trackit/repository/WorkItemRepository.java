@@ -19,4 +19,6 @@ public interface WorkItemRepository extends MongoRepository<WorkItem, String> {
     List<WorkItem> findByIncidentIdOrderByCreatedAtAsc(String incidentId);
 
     List<WorkItem> findByProjectIdIn(Collection<String> projectIds);
+
+    boolean existsByAttachmentIdsContainingAndAssignedTo(String attachmentId, String assignedTo);
 }

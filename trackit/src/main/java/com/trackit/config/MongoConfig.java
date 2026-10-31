@@ -61,5 +61,6 @@ public class MongoConfig {
         workItems.ensureIndex(new Index().on("assignedTo", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC));
         workItems.ensureIndex(new Index().on("incidentId", Sort.Direction.ASC));
         workItems.ensureIndex(new Index().on("projectId", Sort.Direction.ASC));
+        workItems.ensureIndex(new Index().on("attachmentIds", Sort.Direction.ASC));
     }
 }

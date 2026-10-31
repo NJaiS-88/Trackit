@@ -2,7 +2,16 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { parseApiError } from '../api/axiosInstance'
 import { getTeam } from '../api/teamApi'
-import { assignTicket, createTask, getTeamTickets, getTeamWork, reassignWork } from '../api/workApi'
+import {
+  assignTicket,
+  createTask,
+  getTeamTickets,
+  getTeamWork,
+  reassignWork,
+  uploadAttachments,
+} from '../api/workApi'
+import AttachmentList from '../components/AttachmentList'
+import AttachmentPicker from '../components/AttachmentPicker'
 import DueDate from '../components/DueDate'
 import { useNow } from '../hooks/useNow'
 import FormField from '../components/FormField'
@@ -66,6 +75,8 @@ export default function TeamWork() {
   const [taskErrors, setTaskErrors] = useState({})
   const [taskError, setTaskError] = useState(null)
   const [creating, setCreating] = useState(false)
+  const [taskFiles, setTaskFiles] = useState([])
+  const [uploading, setUploading] = useState(false)
 
   const [statusFilter, setStatusFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
@@ -177,6 +188,12 @@ export default function TeamWork() {
 
     setCreating(true)
     try {
+      let attachmentIds = []
+      if (taskFiles.length > 0) {
+        setUploading(true)
+        attachmentIds = (await uploadAttachments(taskFiles)).map((a) => a.id)
+        setUploading(false)
+      }
       const created = await createTask({
         projectId: task.projectId,
         assigneeIds: task.assigneeIds,
@@ -184,8 +201,10 @@ export default function TeamWork() {
         description: task.description.trim(),
         dueDate: task.dueDate,
         dueTime: task.dueTime,
+        attachmentIds,
       })
       setTask(EMPTY_TASK)
+      setTaskFiles([])
       setMessage(`"${task.title.trim()}" assigned to ${namesOf(created.map((w) => w.assigneeId), members)}.`)
       reload()
     } catch (error) {
@@ -193,6 +212,7 @@ export default function TeamWork() {
       setTaskErrors(fieldErrors)
       setTaskError(errorMessage)
     } finally {
+      setUploading(false)
       setCreating(false)
     }
   }
@@ -450,10 +470,18 @@ export default function TeamWork() {
                     error={taskErrors.dueTime}
                   />
 
+                  <div className="form-field span-2">
+                    <span className="form-label">Attachments (optional)</span>
+                    <p className="field-hint attachment-picker-help">
+                      Specs, designs or reference material for this work. Every assigned employee can download them.
+                    </p>
+                    <AttachmentPicker files={taskFiles} onChange={setTaskFiles} disabled={creating} />
+                  </div>
+
                   <div className="form-actions span-2">
                     <button type="submit" className="btn btn-primary" disabled={creating}>
                       {creating && <Spinner />}
-                      {creating ? 'Assigning…' : 'Assign Task'}
+                      {uploading ? 'Uploading files…' : creating ? 'Assigning…' : 'Assign Task'}
                     </button>
                   </div>
                 </>
@@ -533,6 +561,7 @@ export default function TeamWork() {
                           <div className="cell-sub">
                             {WORK_TYPE_LABELS[w.type]} · {workSource(w)}
                           </div>
+                          <AttachmentList attachments={w.attachments} />
                         </td>
                         <td>{w.assigneeName ?? '—'}</td>
                         <td className="cell-muted">

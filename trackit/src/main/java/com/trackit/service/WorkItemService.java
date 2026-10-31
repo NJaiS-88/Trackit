@@ -1,6 +1,7 @@
 package com.trackit.service;
 
 import com.trackit.dto.AssignTicketRequest;
+import com.trackit.dto.AttachmentResponse;
 import com.trackit.dto.AssignWorkRequest;
 import com.trackit.dto.CreateTaskRequest;
 import com.trackit.dto.TeamTicketResponse;
@@ -34,6 +35,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -65,6 +67,7 @@ public class WorkItemService {
     private final MongoTemplate mongoTemplate;
     private final PriorityService priorityService;
     private final SlaService slaService;
+    private final AttachmentService attachmentService;
 
     // ---------- Lead ----------
 
@@ -136,6 +139,10 @@ public class WorkItemService {
         }
         List<User> assignees = findDepartmentEmployees(departmentId, request.assigneeIds());
         assignees.forEach(assignee -> requireOnProject(assignee, project.getId(), project.getName()));
+        List<String> attachmentIds = request.attachmentIds() == null
+                ? List.of()
+                : List.copyOf(new LinkedHashSet<>(request.attachmentIds()));
+        attachmentService.requireUploadedBy(leadId, attachmentIds);
 
         Instant now = Instant.now();
         List<WorkItem> items = assignees.stream()
@@ -143,6 +150,7 @@ public class WorkItemService {
                         .type(WorkItemType.PROJECT_TASK)
                         .title(request.title().trim())
                         .description(trimToNull(request.description()))
+                        .attachmentIds(new ArrayList<>(attachmentIds))
                         .departmentId(departmentId)
                         .projectId(project.getId())
                         .assignedTo(assignee.getId())
@@ -437,6 +445,8 @@ public class WorkItemService {
         Map<String, Incident> incidents = incidentRepository
                 .findAllById(ids(items.stream().map(WorkItem::getIncidentId)))
                 .stream().collect(Collectors.toMap(Incident::getId, Function.identity()));
+        Map<String, AttachmentResponse> attachments = attachmentService.describe(ids(items.stream()
+                .flatMap(w -> w.getAttachmentIds() == null ? Stream.empty() : w.getAttachmentIds().stream())));
 
         Instant now = Instant.now();
         return items.stream().map(w -> {
@@ -465,7 +475,10 @@ public class WorkItemService {
                     w.getCreatedAt(),
                     w.getAssignedAt() == null ? w.getCreatedAt() : w.getAssignedAt(),
                     w.getUpdatedAt(),
-                    w.getCompletedAt());
+                    w.getCompletedAt(),
+                    w.getAttachmentIds() == null
+                            ? List.of()
+                            : w.getAttachmentIds().stream().map(attachments::get).filter(Objects::nonNull).toList());
         }).toList();
     }
 

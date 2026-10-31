@@ -9,6 +9,14 @@ export function formatDate(value) {
   return value ? dateFormatter.format(new Date(value)) : '—'
 }
 
+/** "2.4 MB", "830 KB", "120 B". */
+export function formatBytes(bytes) {
+  if (!Number.isFinite(bytes)) return '—'
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 const exactTimeFormatter = new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' })
 
 /** Time of day with seconds, e.g. "5:30:12 PM". */
