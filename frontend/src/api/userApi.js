@@ -1,13 +1,15 @@
 import axiosInstance from './axiosInstance'
 
 /**
- * @typedef {{id: string, name: string, email: string, role: 'EMPLOYEE' | 'ENGINEER' | 'ADMIN', departmentId: string | null, active: boolean, createdAt: string}} User
+ * @typedef {{id: string, employeeId: string | null, name: string, email: string, role: 'EMPLOYEE' | 'ENGINEER' | 'ADMIN', departmentId: string | null, active: boolean, createdAt: string}} User
  * @typedef {{content: User[], page: {size: number, number: number, totalElements: number, totalPages: number}}} UserPage
  */
 
-/** @returns {Promise<UserPage>} */
-export async function getUsers({ page = 0, size = 20, sort = 'createdAt,desc' } = {}) {
-  const { data } = await axiosInstance.get('/api/admin/users', { params: { page, size, sort } })
+/** `query` searches employee id, name or email across all users. @returns {Promise<UserPage>} */
+export async function getUsers({ page = 0, size = 20, sort = 'createdAt,desc', query = '' } = {}) {
+  const params = { page, size, sort }
+  if (query.trim()) params.q = query.trim()
+  const { data } = await axiosInstance.get('/api/admin/users', { params })
   return data
 }
 

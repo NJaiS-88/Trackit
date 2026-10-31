@@ -9,23 +9,26 @@ import { useAuth } from '../hooks/useAuth'
 import Timestamp from '../components/Timestamp'
 
 const PAGE_SIZE = 20
-const COLUMN_COUNT = 7
+const COLUMN_COUNT = 8
 
 export default function AdminUsers() {
   const { user: currentUser } = useAuth()
 
   const [page, setPage] = useState(0)
   const [reloadCount, setReloadCount] = useState(0)
+  // `searchText` is what's typed; `query` is the search that was submitted and is being shown
+  const [searchText, setSearchText] = useState('')
+  const [query, setQuery] = useState('')
   // `key` records which request a result belongs to; a mismatch means a fetch is in flight
   const [result, setResult] = useState({ key: null, data: null, error: null })
   const [actionError, setActionError] = useState(null)
   const [pendingIds, setPendingIds] = useState(() => new Set())
   const [departments, setDepartments] = useState({ key: null, list: [], error: null })
-  const requestKey = `${page}:${reloadCount}`
+  const requestKey = `${page}:${reloadCount}:${query}`
 
   useEffect(() => {
     let ignore = false
-    getUsers({ page, size: PAGE_SIZE })
+    getUsers({ page, size: PAGE_SIZE, query })
       .then((data) => {
         if (!ignore) setResult({ key: requestKey, data, error: null })
       })
@@ -35,7 +38,19 @@ export default function AdminUsers() {
     return () => {
       ignore = true
     }
-  }, [requestKey, page])
+  }, [requestKey, page, query])
+
+  const handleSearch = (event) => {
+    event.preventDefault()
+    setQuery(searchText.trim())
+    setPage(0)
+  }
+
+  const clearSearch = () => {
+    setSearchText('')
+    setQuery('')
+    setPage(0)
+  }
 
   useEffect(() => {
     let ignore = false
@@ -124,6 +139,25 @@ export default function AdminUsers() {
         </button>
       </div>
 
+      <form className="filter-bar glass" onSubmit={handleSearch} role="search">
+        <input
+          type="search"
+          className="control filter-search"
+          placeholder="Search by employee ID, name or email…"
+          aria-label="Search users"
+          value={searchText}
+          onChange={(event) => setSearchText(event.target.value)}
+        />
+        <button type="submit" className="btn btn-primary" disabled={loading}>
+          Search
+        </button>
+        {query && (
+          <button type="button" className="btn btn-ghost" onClick={clearSearch}>
+            Clear
+          </button>
+        )}
+      </form>
+
       {actionError && (
         <div className="alert alert-error" role="alert">
           {actionError}
@@ -144,6 +178,7 @@ export default function AdminUsers() {
           <table className="data-table">
             <thead>
               <tr>
+                <th>Employee ID</th>
                 <th>Name</th>
                 <th>Email</th>
                 <th>Role</th>
@@ -164,7 +199,7 @@ export default function AdminUsers() {
               {!loading && users.length === 0 && (
                 <tr>
                   <td colSpan={COLUMN_COUNT} className="table-empty">
-                    No users found.
+                    {query ? `No users match “${query}”.` : 'No users found.'}
                   </td>
                 </tr>
               )}
@@ -173,6 +208,7 @@ export default function AdminUsers() {
                 const pending = pendingIds.has(u.id)
                 return (
                   <tr key={u.id} className={u.active ? undefined : 'row-inactive'}>
+                    <td className="cell-mono">{u.employeeId ?? '—'}</td>
                     <td>
                       {u.name}
                       {isSelf && <span className="you-tag">You</span>}

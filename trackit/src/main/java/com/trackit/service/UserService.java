@@ -15,17 +15,27 @@ import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
+    private static final int MAX_SEARCH_LENGTH = 100;
+
     private final DepartmentRepository departmentRepository;
     private final RefreshTokenService refreshTokenService;
 
-    public Page<UserResponse> getAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable).map(this::toResponse);
+    /** A blank {@code query} lists everyone; otherwise a partial, case-insensitive match on employee id, name or email. */
+    public Page<UserResponse> getAllUsers(String query, Pageable pageable) {
+        if (!StringUtils.hasText(query)) {
+            return userRepository.findAll(pageable).map(this::toResponse);
+        }
+        String text = query.trim();
+        String safe = text.length() > MAX_SEARCH_LENGTH ? text.substring(0, MAX_SEARCH_LENGTH) : text;
+        // Quoted, so characters like "." or "+" in the search are matched literally rather than as regex
+        return userRepository.search(Pattern.quote(safe), pageable).map(this::toResponse);
     }
 
     public UserResponse getUserById(String id) {
