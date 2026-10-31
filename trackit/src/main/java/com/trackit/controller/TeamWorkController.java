@@ -5,9 +5,12 @@ import com.trackit.dto.AssignWorkRequest;
 import com.trackit.dto.CreateTaskRequest;
 import com.trackit.dto.RoutingRecommendationResponse;
 import com.trackit.dto.TeamTicketResponse;
+import com.trackit.dto.TicketTransferResponse;
+import com.trackit.dto.TransferTicketRequest;
 import com.trackit.dto.WorkItemResponse;
 import com.trackit.security.CurrentUser;
 import com.trackit.service.TicketRoutingService;
+import com.trackit.service.TicketTransferService;
 import com.trackit.service.WorkItemService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,6 +37,7 @@ public class TeamWorkController {
 
     private final WorkItemService workItemService;
     private final TicketRoutingService ticketRoutingService;
+    private final TicketTransferService ticketTransferService;
 
     @GetMapping("/work")
     @PreAuthorize("hasRole('ENGINEER')")
@@ -63,6 +67,15 @@ public class TeamWorkController {
     public RoutingRecommendationResponse recommendDepartment(@PathVariable String incidentId) {
         return RoutingRecommendationResponse.from(
                 ticketRoutingService.recommendForLead(CurrentUser.get().id(), incidentId));
+    }
+
+    @PostMapping("/tickets/{incidentId}/transfer")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ENGINEER')")
+    @Operation(summary = "Pass a ticket your department handles to another department's Lead")
+    public TicketTransferResponse transferTicket(@PathVariable String incidentId,
+                                                 @Valid @RequestBody TransferTicketRequest request) {
+        return ticketTransferService.transfer(CurrentUser.get().id(), incidentId, request);
     }
 
     @PostMapping("/tickets/{incidentId}/assign")
