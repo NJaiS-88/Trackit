@@ -1333,6 +1333,39 @@ textarea.control {
   white-space: normal;
 }
 
+/* Lead's Department tickets: share the page width instead of scrolling sideways */
+.tickets-table .col-ticket {
+  width: 22%;
+}
+
+.tickets-table .col-priority,
+.tickets-table .col-raised,
+.tickets-table .col-status {
+  width: 10%;
+}
+
+.tickets-table .col-reporter {
+  width: 11%;
+}
+
+.tickets-table .col-sla {
+  width: 13%;
+}
+
+.tickets-table .col-handled {
+  width: 24%;
+}
+
+.tickets-table .action-group {
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.tickets-table .multi-select {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
 /* ============ Attachments ============ */
 
 .attachment-picker {
