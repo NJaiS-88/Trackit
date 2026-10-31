@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { to: '/admin/departments', label: 'Departments', icon: '▤', roles: ['ADMIN'] },
   { to: '/admin/projects', label: 'Projects', icon: '◫', roles: ['ADMIN'] },
   { to: '/admin/work', label: 'Work Overview', icon: '✓', roles: ['ADMIN'] },
+  { to: '/admin/analytics', label: 'Analytics', icon: '◔', roles: ['ADMIN'] },
 ]
 
 export default function Sidebar({ open, onNavigate }) {
