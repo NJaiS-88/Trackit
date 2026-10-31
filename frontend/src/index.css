@@ -45,6 +45,38 @@ body {
   min-height: 100vh;
 }
 
+/* ============ Scrollbars ============ */
+
+/* Chrome, Edge, Safari: slim rounded thumb on a transparent track */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #a5b4fc;
+}
+
+/* Firefox only; Chromium would let these standard properties override the rounded thumb above */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+}
+
 h1,
 h2 {
   margin: 0;
