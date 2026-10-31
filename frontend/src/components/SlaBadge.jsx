@@ -12,7 +12,8 @@ export default function SlaBadge({ dueAt, slaStatus, status, now }) {
   if (!dueAt) return <span className="text-muted">—</span>
 
   const timeLeft = new Date(dueAt).getTime() - now
-  const running = !CLOCK_STOPPED.has(status)
+  // Without the ticket status (work items), trust the server's slaStatus for paused/resolved tickets
+  const running = status ? !CLOCK_STOPPED.has(status) : slaStatus === 'NORMAL' || slaStatus === 'DUE_SOON'
   // The server works the status out per request; an open page can outlive the deadline
   const state = running && timeLeft <= 0 ? 'BREACHED' : slaStatus
 
