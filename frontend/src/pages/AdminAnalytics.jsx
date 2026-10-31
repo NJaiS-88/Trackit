@@ -84,7 +84,7 @@ export default function AdminAnalytics() {
             onClick={() => setReloadCount((count) => count + 1)}
             disabled={loading}
           >
-            ↻ Refresh
+            Refresh
           </button>
         </div>
       </div>

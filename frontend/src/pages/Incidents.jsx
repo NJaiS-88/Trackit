@@ -88,7 +88,7 @@ export default function Incidents() {
         </div>
         {role === 'EMPLOYEE' && (
           <Link to="/incidents/new" className="btn btn-primary">
-            ＋ New Incident
+            New Incident
           </Link>
         )}
       </div>

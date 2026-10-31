@@ -117,7 +117,7 @@ export default function CreateIncident() {
           <p className="text-muted">Describe the problem so the right engineer can pick it up quickly.</p>
         </div>
         <button type="button" className="btn btn-ghost" onClick={handleStartOver} disabled={submitting || !hasInput}>
-          ↺ Start over
+          Start over
         </button>
       </div>
 

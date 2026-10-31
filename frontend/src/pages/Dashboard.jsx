@@ -84,7 +84,7 @@ export default function Dashboard() {
         </div>
         {role === 'EMPLOYEE' && (
           <Link to="/incidents/new" className="btn btn-primary">
-            ＋ New Incident
+            New Incident
           </Link>
         )}
       </div>

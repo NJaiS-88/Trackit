@@ -29,6 +29,7 @@ export default function Navbar({ onToggleSidebar, sidebarOpen }) {
         {role === 'EMPLOYEE' && <DeadlineChip />}
         <div className="navbar-user-text">
           <span className="navbar-user-name">{user.name}</span>
+          {user.employeeId && <span className="navbar-employee-id">{user.employeeId}</span>}
           <span className={`role-badge role-${role.toLowerCase()}`}>{ROLE_LABELS[role] ?? role}</span>
         </div>
         <span className="avatar" aria-hidden="true">
