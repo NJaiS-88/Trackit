@@ -1946,6 +1946,100 @@ textarea.control {
   margin-top: 0.4rem;
 }
 
+/* ============ Ticket chat ============ */
+
+.ticket-chat .section-header {
+  margin-bottom: 0.75rem;
+}
+
+.chat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 420px;
+  margin: 0;
+  padding: 0.25rem;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.chat-empty {
+  padding: 1.5rem 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+.chat-message {
+  align-self: flex-start;
+  max-width: min(80%, 560px);
+  padding: 0.55rem 0.75rem;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) var(--radius) 4px;
+}
+
+.chat-message-mine {
+  align-self: flex-end;
+  background: var(--primary-soft);
+  border-color: color-mix(in srgb, var(--primary) 25%, var(--border));
+  border-radius: var(--radius) var(--radius) 4px var(--radius);
+}
+
+.chat-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-bottom: 0.2rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.chat-author {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.chat-role {
+  padding: 0 0.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.chat-body {
+  margin: 0;
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chat-composer {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+.chat-composer textarea.control {
+  min-height: 4.5rem;
+}
+
+.chat-composer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.chat-readonly {
+  margin: 0.85rem 0 0;
+  padding-top: 0.75rem;
+  font-size: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
 /* ============ Incident detail ============ */
 
 .detail-header {

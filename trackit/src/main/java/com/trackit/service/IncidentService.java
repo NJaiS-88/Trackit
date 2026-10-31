@@ -23,6 +23,7 @@ import com.trackit.model.enums.IncidentStatus;
 import com.trackit.model.enums.Priority;
 import com.trackit.model.enums.SlaStatus;
 import com.trackit.model.enums.Urgency;
+import com.trackit.model.enums.WorkItemStatus;
 import com.trackit.repository.IncidentRepository;
 import com.trackit.repository.UserRepository;
 import com.trackit.repository.WorkItemRepository;
@@ -237,7 +238,7 @@ public class IncidentService {
 
     private void assertCanView(Incident incident, String userId, Role role) {
         boolean allowed = switch (role) {
-            case EMPLOYEE -> Objects.equals(incident.getCreatedBy(), userId);
+            case EMPLOYEE -> Objects.equals(incident.getCreatedBy(), userId) || isWorkingOn(incident, userId);
             case ENGINEER -> Objects.equals(incident.getAssignedTo(), userId)
                     || departmentMemberIds(userId).contains(incident.getCreatedBy());
             case ADMIN -> true;
@@ -265,6 +266,12 @@ public class IncidentService {
             }
             case ADMIN -> null;
         };
+    }
+
+    /** An employee the Lead assigned to the ticket, unless they declined it (or it was reassigned away). */
+    private boolean isWorkingOn(Incident incident, String userId) {
+        return workItemRepository.findByIncidentIdOrderByCreatedAtAsc(incident.getId()).stream()
+                .anyMatch(w -> userId.equals(w.getAssignedTo()) && w.getStatus() != WorkItemStatus.DECLINED);
     }
 
     /** Everyone in the Lead's department; empty if the Lead has none. */
