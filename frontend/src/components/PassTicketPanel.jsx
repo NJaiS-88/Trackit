@@ -7,8 +7,8 @@ const OPEN_WORK = new Set(['ASSIGNED', 'IN_PROGRESS', 'DECLINED'])
 const MAX_NOTE = 500
 
 /**
- * Lets a Lead pass a ticket to another department's Lead. The AI's suggestion is preselected when there is one;
- * `onPassed` receives the saved transfer.
+ * Lets a Lead pass a ticket to another department's Lead; shown inside a modal that provides the title.
+ * The AI's suggestion is preselected when there is one; `onPassed` receives the saved transfer.
  */
 export default function PassTicketPanel({ ticket, departments, onCancel, onPassed }) {
   const recommendation = ticket.routingRecommendation
@@ -43,12 +43,7 @@ export default function PassTicketPanel({ ticket, departments, onCancel, onPasse
 
   return (
     <form className="pass-panel" onSubmit={handleSubmit} noValidate>
-      <div className="pass-panel-head">
-        <strong>Pass {ticket.incidentNumber} to another department</strong>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel} disabled={submitting}>
-          Cancel
-        </button>
-      </div>
+      <p className="ai-modal-ticket">{ticket.title}</p>
 
       {hasOpenWork && (
         <p className="alert alert-warning">
@@ -63,7 +58,7 @@ export default function PassTicketPanel({ ticket, departments, onCancel, onPasse
           <label className="pass-panel-field">
             <span>Department</span>
             <select
-              className="control control-sm"
+              className="control"
               value={departmentId}
               onChange={(event) => {
                 setDepartmentId(event.target.value)
@@ -105,14 +100,20 @@ export default function PassTicketPanel({ ticket, departments, onCancel, onPasse
 
           {error && <p className="field-error">{error}</p>}
 
-          <div className="pass-panel-actions">
-            <button type="submit" className="btn btn-primary btn-sm" disabled={submitting || hasOpenWork}>
-              {submitting && <Spinner />}
-              {submitting ? 'Passing…' : 'Pass ticket'}
-            </button>
-          </div>
         </>
       )}
+
+      <div className="pass-panel-actions">
+        <button type="button" className="btn btn-ghost" onClick={onCancel} disabled={submitting}>
+          Cancel
+        </button>
+        {options.length > 0 && (
+          <button type="submit" className="btn btn-primary" disabled={submitting || hasOpenWork}>
+            {submitting && <Spinner />}
+            {submitting ? 'Passing…' : 'Pass ticket'}
+          </button>
+        )}
+      </div>
     </form>
   )
 }
