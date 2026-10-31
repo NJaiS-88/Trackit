@@ -164,7 +164,7 @@ public class AuthService {
         String projectName = user.getRole() != Role.EMPLOYEE || user.getProjectId() == null
                 ? null
                 : projectRepository.findById(user.getProjectId()).map(Project::getName).orElse(null);
-        return new UserSummary(user.getId(), user.getName(), user.getEmail(), user.getRole(),
+        return new UserSummary(user.getId(), user.getEmployeeId(), user.getName(), user.getEmail(), user.getRole(),
                 departmentName, projectName);
     }
 

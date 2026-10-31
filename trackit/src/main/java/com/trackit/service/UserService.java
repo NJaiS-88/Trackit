@@ -105,6 +105,7 @@ public class UserService {
     private UserResponse toResponse(User user) {
         return new UserResponse(
                 user.getId(),
+                user.getEmployeeId(),
                 user.getName(),
                 user.getEmail(),
                 user.getRole(),
