@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { parseApiError } from '../api/axiosInstance'
 import { createIncident } from '../api/incidentApi'
+import AiDraftBox from '../components/AiDraftBox'
 import ChoiceGroup from '../components/ChoiceGroup'
 import FormField from '../components/FormField'
 import PriorityBadge from '../components/PriorityBadge'
@@ -31,12 +32,40 @@ export default function CreateIncident() {
   const [errors, setErrors] = useState({})
   const [formError, setFormError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  // The AI fills the form once per ticket; Start over brings the box back
+  const [aiUsed, setAiUsed] = useState(false)
+  // Bumped by Start over so the AI box also forgets any text typed into it
+  const [resetCount, setResetCount] = useState(0)
   const expectedPriority = previewPriority(form.impact, form.urgency)
+  const hasInput = aiUsed || Object.values(form).some((value) => value.trim() !== '')
 
   const handleChange = (event) => {
     const { name, value } = event.target
     setForm((prev) => ({ ...prev, [name]: value }))
     setErrors((prev) => ({ ...prev, [name]: undefined }))
+  }
+
+  const handleDraft = (draft) => {
+    setForm({
+      title: draft.title ?? '',
+      description: draft.description ?? '',
+      category: draft.category ?? '',
+      affectedService: draft.affectedService ?? '',
+      impact: draft.impact ?? '',
+      urgency: draft.urgency ?? '',
+    })
+    setErrors({})
+    setFormError(null)
+    setAiUsed(true)
+  }
+
+  const handleStartOver = () => {
+    if (hasInput && !window.confirm('Clear everything and start again?')) return
+    setForm(EMPTY_FORM)
+    setErrors({})
+    setFormError(null)
+    setAiUsed(false)
+    setResetCount((count) => count + 1)
   }
 
   const handleSubmit = async (event) => {
@@ -87,7 +116,18 @@ export default function CreateIncident() {
           <h1>New Incident</h1>
           <p className="text-muted">Describe the problem so the right engineer can pick it up quickly.</p>
         </div>
+        <button type="button" className="btn btn-ghost" onClick={handleStartOver} disabled={submitting || !hasInput}>
+          ↺ Start over
+        </button>
       </div>
+
+      {aiUsed ? (
+        <div className="alert alert-success ai-draft-note" role="status">
+          Filled in by AI from your description. Review and edit anything before submitting.
+        </div>
+      ) : (
+        <AiDraftBox key={resetCount} onDraft={handleDraft} />
+      )}
 
       <form className="card glass form-grid" onSubmit={handleSubmit} noValidate>
         {formError && (
