@@ -78,3 +78,58 @@ class IncidentDraft(BaseModel):
             return None
         text = str(value).strip()[:120]
         return text or None
+
+
+# ---------- Ticket routing ----------
+
+Confidence = Literal["HIGH", "MEDIUM", "LOW"]
+
+
+class RoutingDepartment(BaseModel):
+    id: str = Field(min_length=1, max_length=64)
+    name: str = Field(min_length=1, max_length=80)
+    # What the department handles; the more specific, the better the recommendation
+    description: str | None = Field(default=None, max_length=300)
+
+
+class TicketRouteRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+    description: str = Field(min_length=1, max_length=3000)
+    category: Category
+    affected_service: str | None = Field(default=None, max_length=120)
+    # Department handling the ticket now (the reporter's, or the last one it was passed to)
+    current_department_id: str | None = Field(default=None, max_length=64)
+    departments: list[RoutingDepartment] = Field(min_length=1, max_length=50)
+
+    @field_validator("departments")
+    @classmethod
+    def _unique_ids(cls, departments: list[RoutingDepartment]) -> list[RoutingDepartment]:
+        ids = [d.id for d in departments]
+        if len(ids) != len(set(ids)):
+            raise ValueError("department ids must be unique")
+        return departments
+
+
+class RoutingDecision(BaseModel):
+    """What the model is asked to return."""
+
+    department_id: str = Field(description="The id of the chosen department, copied exactly from the list")
+    confidence: Confidence = Field(
+        description="HIGH = clearly this department's work, MEDIUM = likely, LOW = no department is a clear fit"
+    )
+    reason: str = Field(description="One or two sentences a Lead can read, at most 300 characters")
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def _cap_reason(cls, value: str) -> str:
+        return str(value).strip()[:300]
+
+
+class TicketRouteResponse(BaseModel):
+    department_id: str
+    department_name: str
+    confidence: Confidence
+    reason: str
+    # True when the recommendation is the department already handling the ticket
+    stay: bool
+    model: str

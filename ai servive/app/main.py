@@ -5,10 +5,18 @@ import logging
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.chains import chat, incident_draft
+from app.chains import chat, incident_draft, ticket_routing
 from app.config import get_settings
 from app.llm import LLMNotConfiguredError
-from app.schemas import ChatRequest, ChatResponse, HealthResponse, IncidentDraft, IncidentDraftRequest
+from app.schemas import (
+    ChatRequest,
+    ChatResponse,
+    HealthResponse,
+    IncidentDraft,
+    IncidentDraftRequest,
+    TicketRouteRequest,
+    TicketRouteResponse,
+)
 from app.security import require_service_token
 
 logger = logging.getLogger("trackit.ai")
@@ -69,6 +77,30 @@ async def incident_draft_endpoint(request: IncidentDraftRequest) -> IncidentDraf
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="The AI model could not fill in the ticket right now. Please try again or fill it in yourself.",
         ) from error
+
+
+@api.post("/tickets/route", response_model=TicketRouteResponse)
+async def ticket_route_endpoint(request: TicketRouteRequest) -> TicketRouteResponse:
+    """Recommends the department that should handle a ticket. A Lead decides whether to pass it there."""
+    try:
+        department, decision = await ticket_routing.recommend(request)
+    except LLMNotConfiguredError as error:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(error)) from error
+    except Exception as error:
+        # Includes answers that aren't valid JSON or name a department outside the list (OutputParserException)
+        logger.exception("Ticket routing chain failed")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="The AI model could not recommend a department right now.",
+        ) from error
+    return TicketRouteResponse(
+        department_id=department.id,
+        department_name=department.name,
+        confidence=decision.confidence,
+        reason=decision.reason,
+        stay=department.id == request.current_department_id,
+        model=get_settings().openrouter_model,
+    )
 
 
 app.include_router(api)
