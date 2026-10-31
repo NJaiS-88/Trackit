@@ -1,5 +1,5 @@
 import { deadlineState } from '../constants/work'
-import { formatDeadline } from '../utils/format'
+import { deadlineOf, formatDay, formatShortTime } from '../utils/format'
 
 /** A work item's deadline, flagged "Due soon" (80% of its time used) or "Overdue" while still open. */
 export default function DueDate({ item, now }) {
@@ -7,7 +7,10 @@ export default function DueDate({ item, now }) {
   const state = deadlineState(item, now)
   return (
     <span className={`due-date${state ? ` due-${state}` : ''}`}>
-      {formatDeadline(item.dueDate, item.dueTime)}
+      <span>{formatDay(item.dueDate)}</span>
+      {item.dueTime && (
+        <span className="due-time">{formatShortTime(deadlineOf(item.dueDate, item.dueTime))}</span>
+      )}
       {state === 'overdue' && <span className="due-flag">Overdue</span>}
       {state === 'due-soon' && <span className="due-flag">Due soon</span>}
     </span>

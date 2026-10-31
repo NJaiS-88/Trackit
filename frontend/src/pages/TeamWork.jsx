@@ -293,6 +293,14 @@ export default function TeamWork() {
                     <th>Priority</th>
                     <th>Reported by</th>
                     <th>Raised</th>
+                    <th>Ticket status</th>
+                    <th>SLA deadline</th>
+                    <th>Handled by</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tickets.length === 0 && (
+                    <tr>
                       <td colSpan={7} className="table-empty">
                         No open tickets in your department.
                       </td>
