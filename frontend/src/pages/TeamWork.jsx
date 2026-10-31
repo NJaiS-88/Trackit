@@ -286,8 +286,17 @@ export default function TeamWork() {
                 Unresolved tickets raised in {team.departmentName ?? 'your department'}
               </span>
             </div>
-            <div className="table-card glass">
+            <div className="table-card table-fit tickets-table glass">
               <table className="data-table">
+                <colgroup>
+                  <col className="col-ticket" />
+                  <col className="col-priority" />
+                  <col className="col-reporter" />
+                  <col className="col-raised" />
+                  <col className="col-status" />
+                  <col className="col-sla" />
+                  <col className="col-handled" />
+                </colgroup>
                 <thead>
                   <tr>
                     <th>Ticket</th>
