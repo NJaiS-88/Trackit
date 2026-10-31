@@ -987,6 +987,21 @@ textarea.control {
   color: #b45309;
 }
 
+.due-met .due-flag {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.due-paused .due-flag {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.sla-detail {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
 .row-overdue td:first-child {
   box-shadow: inset 3px 0 0 var(--danger);
 }
