@@ -3,6 +3,7 @@ package com.trackit.config;
 import com.trackit.model.Role;
 import com.trackit.model.User;
 import com.trackit.repository.UserRepository;
+import com.trackit.service.EmployeeIdService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -26,6 +27,7 @@ public class AdminBootstrap {
     private final BootstrapAdminProperties properties;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmployeeIdService employeeIdService;
 
     @EventListener(ApplicationReadyEvent.class)
     public void ensureAdminExists() {
@@ -52,6 +54,7 @@ public class AdminBootstrap {
         }
 
         userRepository.save(User.builder()
+                .employeeId(employeeIdService.nextEmployeeId())
                 .name(StringUtils.hasText(properties.name()) ? properties.name().trim() : "Administrator")
                 .email(email)
                 .password(passwordEncoder.encode(properties.password()))

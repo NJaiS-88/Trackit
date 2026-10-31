@@ -26,6 +26,7 @@ public class AccountRequestService {
 
     private final AccountRequestRepository accountRequestRepository;
     private final UserRepository userRepository;
+    private final EmployeeIdService employeeIdService;
 
     /** {@code status} null lists every request. */
     public Page<AccountRequestResponse> getRequests(AccountRequestStatus status, Pageable pageable) {
@@ -57,6 +58,8 @@ public class AccountRequestService {
         request.setPassword(null);
         request = accountRequestRepository.save(request);
 
+        // Taken only once the approval is saved, so rejected or raced requests never use up a number
+        user.setEmployeeId(employeeIdService.nextEmployeeId());
         try {
             userRepository.save(user);
         } catch (DuplicateKeyException e) {
