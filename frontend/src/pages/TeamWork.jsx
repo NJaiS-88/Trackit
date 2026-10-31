@@ -5,13 +5,16 @@ import { getTeam } from '../api/teamApi'
 import {
   assignTicket,
   createTask,
+  getDepartmentOptions,
   getTeamTickets,
   getTeamWork,
   reassignWork,
+  rerunRecommendation,
   uploadAttachments,
 } from '../api/workApi'
 import AttachmentList from '../components/AttachmentList'
 import AttachmentPicker from '../components/AttachmentPicker'
+import PassTicketPanel from '../components/PassTicketPanel'
 import DueDate from '../components/DueDate'
 import SlaBadge from '../components/SlaBadge'
 import { useNow } from '../hooks/useNow'
@@ -72,6 +75,8 @@ export default function TeamWork() {
   const [pendingIds, setPendingIds] = useState(() => new Set())
   const [ticketChoice, setTicketChoice] = useState({})
   const [reassignChoice, setReassignChoice] = useState({})
+  const [departments, setDepartments] = useState([])
+  const [passingId, setPassingId] = useState(null)
 
   const [task, setTask] = useState(EMPTY_TASK)
   const [taskErrors, setTaskErrors] = useState({})
@@ -92,6 +97,20 @@ export default function TeamWork() {
       })
       .catch((err) => {
         if (!ignore) setResult((prev) => ({ key: reloadCount, data: prev.data, error: parseApiError(err).message }))
+      })
+    return () => {
+      ignore = true
+    }
+  }, [reloadCount])
+
+  useEffect(() => {
+    let ignore = false
+    getDepartmentOptions()
+      .then((list) => {
+        if (!ignore) setDepartments(list)
+      })
+      .catch(() => {
+        // Without the list the pass panel says there's nowhere to pass to; the rest of the page still works
       })
     return () => {
       ignore = true
@@ -153,6 +172,42 @@ export default function TeamWork() {
       `${ticket.incidentNumber} assigned to ${namesOf(assigneeIds, members)}.`,
     )
     setTicketChoice((prev) => ({ ...prev, [ticket.id]: [] }))
+  }
+
+  /** Asks the AI again and swaps the new suggestion into the ticket in place, without reloading the page. */
+  const handleRerun = async (ticket) => {
+    const key = `${ticket.id}:ai`
+    setActionError(null)
+    setMessage(null)
+    setPendingIds((prev) => new Set(prev).add(key))
+    try {
+      const recommendation = await rerunRecommendation(ticket.id)
+      setResult((prev) => ({
+        ...prev,
+        data: {
+          ...prev.data,
+          tickets: prev.data.tickets.map((t) =>
+            t.id === ticket.id ? { ...t, routingRecommendation: recommendation } : t,
+          ),
+        },
+      }))
+      setMessage(`AI suggestion updated for ${ticket.incidentNumber}.`)
+    } catch (error) {
+      setActionError(parseApiError(error).message)
+    } finally {
+      setPendingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(key)
+        return next
+      })
+    }
+  }
+
+  const handlePassed = (ticket, transfer) => {
+    setPassingId(null)
+    setActionError(null)
+    setMessage(`${ticket.incidentNumber} passed to ${transfer.toDepartmentName}.`)
+    reload()
   }
 
   const handleReassign = (item) => {
@@ -322,6 +377,37 @@ export default function TeamWork() {
                         <div className="cell-title">{t.title}</div>
                         <div className="cell-sub">{t.incidentNumber}</div>
                         <RoutingSuggestion recommendation={t.routingRecommendation} />
+                        <div className="ticket-routing-actions">
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => handleRerun(t)}
+                            disabled={pendingIds.has(`${t.id}:ai`)}
+                          >
+                            {pendingIds.has(`${t.id}:ai`)
+                              ? 'Asking AI…'
+                              : t.routingRecommendation
+                                ? '↻ Re-run AI'
+                                : '🤖 Ask AI'}
+                          </button>
+                          {passingId !== t.id && (
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm"
+                              onClick={() => setPassingId(t.id)}
+                            >
+                              Pass to department…
+                            </button>
+                          )}
+                        </div>
+                        {passingId === t.id && (
+                          <PassTicketPanel
+                            ticket={t}
+                            departments={departments}
+                            onCancel={() => setPassingId(null)}
+                            onPassed={(transfer) => handlePassed(t, transfer)}
+                          />
+                        )}
                       </td>
                       <td>
                         <PriorityBadge priority={t.priority} label={t.priorityLabel} />
