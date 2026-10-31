@@ -1048,11 +1048,12 @@ textarea.control {
   gap: 0.35rem;
 }
 
+/* Coloured text with no padding, so the flag lines up with the date and time above it */
 .due-flag {
-  padding: 0.05rem 0.45rem;
-  border-radius: 999px;
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .due-overdue {
@@ -1061,7 +1062,6 @@ textarea.control {
 }
 
 .due-overdue .due-flag {
-  background: var(--danger-bg);
   color: #b91c1c;
 }
 
@@ -1071,17 +1071,14 @@ textarea.control {
 }
 
 .due-due-soon .due-flag {
-  background: #fef3c7;
   color: #b45309;
 }
 
 .due-met .due-flag {
-  background: #dcfce7;
   color: #15803d;
 }
 
 .due-paused .due-flag {
-  background: #f1f5f9;
   color: #475569;
 }
 

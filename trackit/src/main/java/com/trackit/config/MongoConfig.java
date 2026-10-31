@@ -4,6 +4,7 @@ import com.trackit.model.AccountRequest;
 import com.trackit.model.Department;
 import com.trackit.model.Incident;
 import com.trackit.model.Project;
+import com.trackit.model.TicketMessage;
 import com.trackit.model.User;
 import com.trackit.model.WorkItem;
 import lombok.RequiredArgsConstructor;
@@ -62,5 +63,8 @@ public class MongoConfig {
         workItems.ensureIndex(new Index().on("incidentId", Sort.Direction.ASC));
         workItems.ensureIndex(new Index().on("projectId", Sort.Direction.ASC));
         workItems.ensureIndex(new Index().on("attachmentIds", Sort.Direction.ASC));
+
+        mongoTemplate.indexOps(TicketMessage.class)
+                .ensureIndex(new Index().on("incidentId", Sort.Direction.ASC).on("createdAt", Sort.Direction.ASC));
     }
 }
