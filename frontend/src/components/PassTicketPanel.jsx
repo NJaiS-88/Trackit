@@ -8,7 +8,7 @@ const MAX_NOTE = 500
 
 /**
  * Lets a Lead pass a ticket to another department's Lead; shown inside a modal that provides the title.
- * The AI's suggestion is preselected when there is one; `onPassed` receives the saved transfer.
+ * The AI's suggestion and its handoff note are prefilled when there is one; `onPassed` receives the saved transfer.
  */
 export default function PassTicketPanel({ ticket, departments, onCancel, onPassed }) {
   const recommendation = ticket.routingRecommendation
@@ -17,13 +17,15 @@ export default function PassTicketPanel({ ticket, departments, onCancel, onPasse
     recommendation && !recommendation.stay && options.some((d) => d.id === recommendation.departmentId)
       ? recommendation.departmentId
       : ''
+  const aiNote = suggestedId ? (recommendation.handoffNote ?? '').slice(0, MAX_NOTE) : ''
   const [departmentId, setDepartmentId] = useState(suggestedId)
-  const [note, setNote] = useState('')
+  const [note, setNote] = useState(aiNote)
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
   const hasOpenWork = ticket.assignees.some((a) => OPEN_WORK.has(a.status))
   const chosen = options.find((d) => d.id === departmentId)
+  const showingAiNote = aiNote !== '' && note === aiNote && departmentId === suggestedId
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -61,7 +63,10 @@ export default function PassTicketPanel({ ticket, departments, onCancel, onPasse
               className="control"
               value={departmentId}
               onChange={(event) => {
-                setDepartmentId(event.target.value)
+                const nextId = event.target.value
+                setDepartmentId(nextId)
+                // The AI note is written for the suggested department; an edited note is the Lead's and stays
+                if (note === aiNote || note === '') setNote(nextId === suggestedId ? aiNote : '')
                 setError(null)
               }}
               disabled={submitting || hasOpenWork}
@@ -86,10 +91,11 @@ export default function PassTicketPanel({ ticket, departments, onCancel, onPasse
           <label className="pass-panel-field">
             <span>
               Note for the Lead <span className="text-muted">(optional)</span>
+              {showingAiNote && <span className="pass-panel-ai-tag">Written by AI, review before passing</span>}
             </span>
             <textarea
               className="control"
-              rows={2}
+              rows={aiNote ? 4 : 2}
               maxLength={MAX_NOTE}
               value={note}
               onChange={(event) => setNote(event.target.value)}

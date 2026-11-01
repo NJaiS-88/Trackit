@@ -20,7 +20,7 @@ import axiosInstance from './axiosInstance'
  * }} TeamTicket
  * @typedef {{
  *   departmentId: string, departmentName: string, confidence: 'HIGH' | 'MEDIUM' | 'LOW', reason: string,
- *   stay: boolean, model: string, generatedAt: string
+ *   stay: boolean, model: string, generatedAt: string, handoffNote: string | null
  * }} RoutingRecommendation
  * @typedef {{id: string, name: string, description: string | null, leads: string[], own: boolean}} DepartmentOption
  * @typedef {{
